@@ -1,14 +1,12 @@
 from dash import Dash, dcc, html, dash_table, Input, Output, State, callback
 
-import base64
 import datetime
-import io
-
+from utils.file_to_df import file_to_df
 import pandas as pd
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+# external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = Dash(__name__, external_stylesheets=external_stylesheets)
+app = Dash(__name__)
 
 app.layout = html.Div([
     dcc.Upload(
@@ -34,17 +32,8 @@ app.layout = html.Div([
 ])
 
 def parse_contents(contents, filename, date):
-    content_type, content_string = contents.split(',')
-
-    decoded = base64.b64decode(content_string)
     try:
-        if 'csv' in filename:
-            # Assume that the user uploaded a CSV file
-            df = pd.read_csv(
-                io.StringIO(decoded.decode('utf-8')))
-        elif 'xls' in filename:
-            # Assume that the user uploaded an excel file
-            df = pd.read_excel(io.BytesIO(decoded))
+        df = file_to_df(contents, filename, date)
     except Exception as e:
         print(e)
         return html.Div([
@@ -70,6 +59,11 @@ def parse_contents(contents, filename, date):
         })
     ])
 
+
+
+
+# Recives content from 'upload-data' component
+# Injects content into 'output-data-upload' component
 @callback(Output('output-data-upload', 'children'),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'),
@@ -77,8 +71,7 @@ def parse_contents(contents, filename, date):
 def update_output(list_of_contents, list_of_names, list_of_dates):
     if list_of_contents is not None:
         children = [
-            parse_contents(c, n, d) for c, n, d in
-            zip(list_of_contents, list_of_names, list_of_dates)]
+            parse_contents(c, n, d) for c, n, d in zip(list_of_contents, list_of_names, list_of_dates)]
         return children
 
 if __name__ == '__main__':
