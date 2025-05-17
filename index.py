@@ -31,12 +31,6 @@ app.layout = html.Div([
     html.Div(id='tab-content')
 ])
 
-def render_table(df):
-    return dash_table.DataTable(
-        df.to_dict('records'),
-        [{'name': i, 'id': i} for i in df.columns]
-    )
-
 @callback(
     Output('stored-filename', 'data'),
     Input('upload-data', 'contents'),
