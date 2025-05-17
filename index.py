@@ -1,80 +1,66 @@
-import dash
-from dash import html, dcc, Output, Input, State
+import os
+import uuid
+from dash import Dash, dcc, html, dash_table, Input, Output, State, callback, no_update
+import datetime
 import pandas as pd
 import base64
-import io
+from utils.file_to_df import file_to_df
+from utils.read_file import read_file
+from utils.save_file import save_file
+from components.upload_tab import upload_tab
+from components.info_tab import info_tab
 
-# Importa las páginas
-from pages.page1 import render_page1
-from pages.page2 import render_page2
-from pages.page3 import render_page3
-from pages.page4 import render_page4
-from pages.page5 import render_page5
-from components.sidebar import sidebar
 
-# Inicializa la app
-app = dash.Dash(__name__, suppress_callback_exceptions=True)
-server = app.server  # si lo despliegas
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-# Contenido principal
-content = html.Div(id="page-content", style={"margin-left": "22%", "padding": "20px"})
+# Configura límite de subida (opcional, para archivos > 16MB)
+app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
+app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 
-# Layout completo
+TMP_DIR = '/tmp/dash_uploads'
+os.makedirs(TMP_DIR, exist_ok=True)  # Asegura que exista la carpeta
+
 app.layout = html.Div([
-  dcc.Location(id="url"),
-  dcc.Store(id="stored-data", storage_type="memory"),
-  sidebar,
-  content
+    dcc.Store(id='stored-filename'),  # Guardamos solo el nombre del archivo
+    
+    dcc.Tabs(id='tabs', value='tab-upload', children=[
+        dcc.Tab(label='Subir y ver datos', value='tab-upload'),
+        dcc.Tab(label='Información del DataFrame', value='tab-info'),
+    ]),
+    
+    html.Div(id='tab-content')
 ])
 
-# Renderizado por pathname
-@app.callback(Output("page-content", "children"), Input("url", "pathname"))
-def display_page(pathname):
-  if pathname == "/page-1":
-    return render_page1()
-  elif pathname == "/page-2":
-    return render_page2()
-  elif pathname == "/page-3":
-    return render_page3()
-  elif pathname == "/page-4":
-    return render_page4()
-  elif pathname == "/page-5":
-    return render_page5()
-  else:
-    return html.H3("Welcome! Please choose a page from the sidebar.")
+def render_table(df):
+    return dash_table.DataTable(
+        df.to_dict('records'),
+        [{'name': i, 'id': i} for i in df.columns]
+    )
 
-# Carga de CSV
-# @app.callback(
-#   Output("stored-data", "data"),
-#   Output("upload-output", "children"),
-#   Input("upload-data", "contents"),
-#   State("upload-data", "filename"),
-#   prevent_initial_call=True
-# )
-# def parse_upload(contents, filename):
-#   if contents:
-#     content_type, content_string = contents.split(',')
-#     decoded = base64.b64decode(content_string)
-#     try:
-#       df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-#       return df.to_json(date_format='iso', orient='split'), html.Div(f"Uploaded {filename} successfully.")
-#     except Exception as e:
-#         return None, html.Div(f"Error processing file: {str(e)}")
-#   return None, html.Div("No file uploaded.")
+@callback(
+    Output('stored-filename', 'data'),
+    Input('upload-data', 'contents'),
+    State('upload-data', 'filename'),
+    prevent_initial_call=True
+)
+def save_uploaded_file(contents, filename):
+    if contents is None:
+        return no_update
+    filepath = save_file(contents, filename)
+    # Guardamos solo la ruta del archivo (puedes guardar solo el nombre si prefieres)
+    return filepath
 
-# Estado del dataframe
-# @app.callback(
-#   Output("data-check", "children"),
-#   Input("stored-data", "data"),
-#   prevent_initial_call='initial_duplicate'
-# )
-
-# def check_data_status(data):
-#   if data:
-#     df = pd.read_json(data, orient='split')
-#     return f"DataFrame is loaded with {df.shape[0]} rows and {df.shape[1]} columns."
-#   else:
-#     return "Primero carga los datos"
-
-if __name__ == "__main__":
-  app.run(debug=True)
+@callback(
+    Output('tab-content', 'children'),
+    Input('tabs', 'value'),
+    State('stored-filename', 'data')
+)
+def render_tab(tab, filepath):
+    if tab == 'tab-upload':
+      return upload_tab(filepath)
+    
+    elif tab == 'tab-info':
+      return info_tab(filepath)
+        
+if __name__ == '__main__':
+    app.run(debug=True)
