@@ -10,8 +10,8 @@ def read_file(filepath):
     # file_to_df espera contenido en base64 + nombre + fecha?
     # Entonces recreamos contenido base64 para usar file_to_df
     b64_content = "data:;base64," + base64.b64encode(content).decode()
-    
-    filename = os.path.basename(filepath).split("_",1)[1]  # quitar uuid
+    filename = os.path.basename(filepath)
     date = os.path.getmtime(filepath)
-    df = file_to_df(b64_content, filename, date)
+    
+    df = file_to_df(b64_content, filename)
     return df

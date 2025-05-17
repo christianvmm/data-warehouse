@@ -3,7 +3,7 @@ import base64
 import pandas as pd
 
 
-def file_to_df(contents, filename, date):
+def file_to_df(contents, filename):
     content_type, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
 
@@ -16,4 +16,7 @@ def file_to_df(contents, filename, date):
     elif 'json' in filename:
       df = pd.read_json(io.StringIO(decoded.decode('utf-8')))
 
-    return df    
+    else:
+      raise ValueError("Formato no soportado")
+
+    return df
