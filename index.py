@@ -9,6 +9,16 @@ from utils.read_file import read_file
 from utils.save_file import save_file
 from components.upload_tab import upload_tab
 from components.info_tab import info_tab
+from components.etl_tab import etl_tab
+from components.mineria_tab import mineria_tab
+from components.resultados_tab import resultados_tab
+import tempfile
+
+TMP_DIR = os.path.join(tempfile.gettempdir(), 'dash_uploads')
+os.makedirs(TMP_DIR, exist_ok=True) # Asegura que exista la carpeta
+
+# TMP_DIR = '/tmp/dash_uploads'
+# os.makedirs(TMP_DIR, exist_ok=True)  # Asegura que exista la carpeta
 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -17,20 +27,31 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
 app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 
-TMP_DIR = '/tmp/dash_uploads'
-os.makedirs(TMP_DIR, exist_ok=True)  # Asegura que exista la carpeta
-
 app.layout = html.Div([
     dcc.Store(id='stored-filename'),  # Guardamos solo el nombre del archivo
     
+    html.Div([
+        html.H3("Sube un archivo (.csv, .xlsx, .json):"),
+        dcc.Upload(
+            id='upload-data',
+            children=html.Button('Subir Archivo'),
+            multiple=False
+        )
+    ], style={'textAlign': 'center', 'marginBottom': '20px'}),
+
     dcc.Tabs(id='tabs', value='tab-upload', children=[
         dcc.Tab(label='Subir y ver datos', value='tab-upload'),
-        dcc.Tab(label='Información del DataFrame', value='tab-info'),
+        dcc.Tab(label='Información', value='tab-info'),
+        dcc.Tab(label='ETL', value='tab-etl'),
+        dcc.Tab(label='Minería de datos', value='tab-mineria'),
+        dcc.Tab(label='Resultados', value='tab-resultados'),
     ]),
     
     html.Div(id='tab-content')
+    
 ])
 
+# Callback para guardar el archivo subido
 @callback(
     Output('stored-filename', 'data'),
     Input('upload-data', 'contents'),
@@ -41,20 +62,138 @@ def save_uploaded_file(contents, filename):
     if contents is None:
         return no_update
     filepath = save_file(contents, filename)
-    # Guardamos solo la ruta del archivo (puedes guardar solo el nombre si prefieres)
+    # print("Archivo guardado en:", filepath)
     return filepath
 
 @callback(
+    Output('etl-table', 'children'),
+    Output('etl-feedback', 'children'),
+    Input('etl-apply-button', 'n_clicks'),
+    # Limpieza
+    State('etl-drop-columns', 'value'),
+    State('etl-convert-date', 'value'),
+    State('etl-options', 'value'), 
+    # Transformacion
+    State('etl-normalize-columns', 'value'),
+    State('etl-filter-column', 'value'),
+    State('etl-filter-min', 'value'),
+    State('etl-filter-max', 'value'),
+    State('stored-filename', 'data'),
+    
+    prevent_initial_call=True
+)
+def apply_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
+              normalize_cols, filter_col, filter_min, filter_max, filepath):
+    if filepath is None:
+        return no_update, "No hay archivo cargado."
+
+    df = file_to_df(filepath)
+    feedback_msgs = []
+
+    # 1. Eliminar columnas
+    if cols_to_drop:
+        df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
+        feedback_msgs.append(f"Eliminadas {len(cols_to_drop)} columnas.")
+
+    # 2. Convertir fechas
+    if cols_to_date:
+        for col in cols_to_date:
+            try:
+                # Formatos de YYYY/MM/DD o YYYYMMDD, cambian a YYYY-MM-DD
+                # YYYY/MM/DD
+                df[col] = df[col].astype(str).str.replace('/', '-').str.strip()
+
+                # YYYYMMDD
+                def fix_yyyymmdd(fecha):
+                    fecha = fecha.strip()
+                    if len(fecha) == 8 and fecha.isdigit():
+                        return fecha[:4] + '-' + fecha[4:6] + '-' + fecha[6:]
+                    return fecha
+
+                df[col] = df[col].apply(fix_yyyymmdd)
+
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+                df[col] = df[col].dt.strftime('%Y-%m-%d')
+                feedback_msgs.append(f"'{col}' convertido a formato YYYY-MM-DD.")
+            except Exception as e:
+                feedback_msgs.append(f"Error al convertir '{col}' a fecha: {str(e)}")
+
+    # 3. Reemplazar nulos 
+    if 'nulls' in etl_options:
+        for col in df.columns:
+            if df[col].isnull().any():
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    df[col].fillna(0, inplace=True)
+                    feedback_msgs.append(f"Nulos en '{col}' reemplazados por 0.")
+                else:
+                    df[col].fillna('Desconocido', inplace=True)
+                    feedback_msgs.append(f"Nulos en '{col}' reemplazados por 'Desconocido'.")
+
+    # 4. Eliminar duplicados
+    if 'duplicates' in etl_options:
+        before = len(df)
+        df.drop_duplicates(inplace=True)
+        after = len(df)
+        removed = before - after
+        feedback_msgs.append(f"Eliminadas {removed} filas duplicadas.")
+
+
+     # 5. Normalización
+    if normalize_cols:
+        for col in normalize_cols:
+            if pd.api.types.is_numeric_dtype(df[col]):
+                min_val = df[col].min()
+                max_val = df[col].max()
+                if max_val != min_val:
+                    df[col] = (df[col] - min_val) / (max_val - min_val)
+                    feedback_msgs.append(f"Columna '{col}' normalizada.")
+                else:
+                    feedback_msgs.append(f"No se normalizó '{col}' (valor constante).")
+
+    # 6 . Filtrado 
+    if filter_col and (filter_min is not None or filter_max is not None):
+        original_len = len(df)
+        if filter_min is not None:
+            df = df[df[filter_col] >= filter_min]
+        if filter_max is not None:
+            df = df[df[filter_col] <= filter_max]
+        feedback_msgs.append(f"Filtrado aplicado en '{filter_col}'. Filas reducidas de {original_len} a {len(df)}.")
+
+
+    # Mostrar tabla
+    table = dash_table.DataTable(
+        data=df.head(20).to_dict('records'),
+        columns=[{'name': i, 'id': i} for i in df.columns],
+        style_table={'overflowX': 'auto'},
+        style_cell={'textAlign': 'left'}
+    )
+
+    return table, html.Ul([html.Li(msg) for msg in feedback_msgs])
+
+# Callback para renderizar el contenido de la pestaña seleccionada
+@callback(
     Output('tab-content', 'children'),
     Input('tabs', 'value'),
-    State('stored-filename', 'data')
+    Input('stored-filename', 'data'),
 )
 def render_tab(tab, filepath):
+    print("Callback de render_tab activado")
     if tab == 'tab-upload':
-      return upload_tab(filepath)
+        return upload_tab(filepath)
     
     elif tab == 'tab-info':
-      return info_tab(filepath)
+        return info_tab(filepath)
+    
+    elif tab == 'tab-etl':
+        return etl_tab(filepath)
+    
+    elif tab == 'tab-mineria':
+        return mineria_tab(filepath)
+    
+    elif tab == 'tab-resultados':
+        return resultados_tab(filepath)
+    
+    
         
 if __name__ == '__main__':
     app.run(debug=True)
