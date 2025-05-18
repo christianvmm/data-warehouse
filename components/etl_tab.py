@@ -23,7 +23,7 @@ def etl_tab(filepath):
 
         # --------------------------
         html.Div([
-            html.Label("3. Convertir columnas a fecha:"),
+            html.Label("2. Convertir columnas de fecha:"),
             dcc.Dropdown(
                 id='etl-convert-date',
                 options=[{'label': col, 'value': col} for col in df.columns],
@@ -80,6 +80,23 @@ def etl_tab(filepath):
 
         html.Hr(),
 
-        html.H5("DataFrame transformado:"),
-        html.Div(id='etl-table', style={'marginTop': '20px'})
+        html.H5("Vista previa de dataframe transformado:"),
+        html.Div(id='etl-table', style={'marginTop': '20px'}),
+
+        dcc.Store(id='transformed-df', storage_type='session'),
+        html.Div([
+            html.Label("Selecciona formato de descarga:"),
+            dcc.RadioItems(
+                id='download-format',
+                options=[
+                    {'label': 'CSV', 'value': 'csv'},
+                    {'label': 'JSON', 'value': 'json'},
+                    {'label': 'Excel', 'value': 'excel'}
+                ],
+                value='csv',
+                labelStyle={'display': 'inline-block', 'marginRight': '10px'}
+            ),
+            html.Button("Descargar archivo", id='download-button', n_clicks=0),
+            dcc.Download(id="download-data")
+        ], style={'marginTop': '30px'}),
     ])

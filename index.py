@@ -1,6 +1,8 @@
 import os
+import io
 import uuid
 from dash import Dash, dcc, html, dash_table, Input, Output, State, callback, no_update
+from dash.exceptions import PreventUpdate
 import datetime
 import pandas as pd
 import base64
@@ -65,9 +67,11 @@ def save_uploaded_file(contents, filename):
     # print("Archivo guardado en:", filepath)
     return filepath
 
+# Callback para ETL
 @callback(
     Output('etl-table', 'children'),
     Output('etl-feedback', 'children'),
+    Output('transformed-df', 'data', allow_duplicate=True),
     Input('etl-apply-button', 'n_clicks'),
     # Limpieza
     State('etl-drop-columns', 'value'),
@@ -168,7 +172,37 @@ def apply_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
         style_cell={'textAlign': 'left'}
     )
 
-    return table, html.Ul([html.Li(msg) for msg in feedback_msgs])
+    return table, html.Ul([html.Li(msg) for msg in feedback_msgs]), df.to_json(date_format='iso', orient='split')
+
+# Callback para descargar el archivo transformado
+@callback(
+    Output("download-data", "data"),
+    Input("download-button", "n_clicks"),
+    State("transformed-df", "data"),
+    State("download-format", "value"),
+    prevent_initial_call=True
+)
+def download_file(n_clicks, df_json, format_selected):
+    if df_json is None:
+        raise PreventUpdate
+
+    df = pd.read_json(df_json, orient='split')
+
+    if format_selected == "csv":
+        return dcc.send_bytes(df.to_csv(index=False).encode(), "datos_transformados.csv")
+
+    elif format_selected == "json":
+        return dcc.send_bytes(df.to_json(orient="records", indent=2).encode(), "datos_transformados.json")
+
+    elif format_selected == "excel":
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Datos')
+        buffer.seek(0)
+        return dcc.send_bytes(buffer.read(), "datos_transformados.xlsx")
+
+    else:
+        raise PreventUpdate
 
 # Callback para renderizar el contenido de la pestaña seleccionada
 @callback(
