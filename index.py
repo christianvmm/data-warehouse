@@ -25,11 +25,12 @@ os.makedirs(TMP_DIR, exist_ok=True) # Asegura que exista la carpeta
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-# Configura límite de subida (opcional, para archivos > 16MB)
+# límite de subida (para archivos > 16MB)
 app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
 app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 
 app.layout = html.Div([
+    dcc.Store(id='transformed-filepath', storage_type='memory'), 
     dcc.Store(id='stored-filename'),  # Guardamos solo el nombre del archivo
     
     html.Div([
@@ -53,6 +54,7 @@ app.layout = html.Div([
     
 ])
 
+
 # Callback para guardar el archivo subido
 @callback(
     Output('stored-filename', 'data'),
@@ -67,11 +69,14 @@ def save_uploaded_file(contents, filename):
     # print("Archivo guardado en:", filepath)
     return filepath
 
+
+
+
 # Callback para ETL
 @callback(
     Output('etl-table', 'children'),
     Output('etl-feedback', 'children'),
-    Output('transformed-df', 'data', allow_duplicate=True),
+    Output('transformed-filepath', 'data'),
     Input('etl-apply-button', 'n_clicks'),
     # Limpieza
     State('etl-drop-columns', 'value'),
@@ -163,6 +168,10 @@ def apply_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
             df = df[df[filter_col] <= filter_max]
         feedback_msgs.append(f"Filtrado aplicado en '{filter_col}'. Filas reducidas de {original_len} a {len(df)}.")
 
+    # Guardar el dataframe transformado en un archivo temporal
+    filename = f"processed_{uuid.uuid4().hex}.csv"
+    fullpath = os.path.join(TMP_DIR, filename)
+    df.to_csv(fullpath, index=False)
 
     # Mostrar tabla
     table = dash_table.DataTable(
@@ -172,7 +181,18 @@ def apply_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
         style_cell={'textAlign': 'left'}
     )
 
-    return table, html.Ul([html.Li(msg) for msg in feedback_msgs]), df.to_json(date_format='iso', orient='split')
+    # feedback = f"Archivo procesado guardado: {filename}"
+
+    # return table, html.Ul([html.Li(msg) for msg in feedback_msgs]), df.to_json(date_format='iso', orient='split')
+    # return (
+    #     table,
+    #     html.Ul([html.Li(msg) for msg in feedback_msgs]),
+    #     {
+    #         'columns': df.columns.tolist(),
+    #         'data': df.to_dict('records')
+    #     }
+    # )
+    return table, html.Ul([html.Li(msg) for msg in feedback_msgs]), filename
 
 # Callback para descargar el archivo transformado
 @callback(
@@ -204,14 +224,17 @@ def download_file(n_clicks, df_json, format_selected):
     else:
         raise PreventUpdate
 
+
+
 # Callback para renderizar el contenido de la pestaña seleccionada
 @callback(
     Output('tab-content', 'children'),
     Input('tabs', 'value'),
     Input('stored-filename', 'data'),
+    State('transformed-filepath', 'data')
 )
-def render_tab(tab, filepath):
-    print("Callback de render_tab activado")
+def render_tab(tab, filepath, processed_filename):
+    # print("Callback de render_tab activado")
     if tab == 'tab-upload':
         return upload_tab(filepath)
     
@@ -222,7 +245,8 @@ def render_tab(tab, filepath):
         return etl_tab(filepath)
     
     elif tab == 'tab-mineria':
-        return mineria_tab(filepath)
+        # print("DEBUG: df_dict recibido en minería =", df_dict) 
+        return mineria_tab(processed_filename)
     
     elif tab == 'tab-resultados':
         return resultados_tab(filepath)
