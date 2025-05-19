@@ -65,5 +65,22 @@ def mineria_tab(processed_filename):
             placeholder="Selecciona una columna",
         ),
 
-        html.Div(id='eda-plots-container') 
+        html.Div(id='eda-plots-container'), 
+        html.Hr(),
+
+        html.H5("Técnicas de Minería de Datos"),
+        html.P("Técnica a aplicar:"),
+        dcc.Dropdown(
+            id='mining-technique-dropdown',
+            options=[
+                {'label': 'Clustering - K-Means', 'value': 'kmeans'},
+                {'label': 'Clasificación - Árbol de Decisión', 'value': 'decision_tree'},
+                {'label': 'Regresión Lineal', 'value': 'regression'}
+            ],
+            placeholder="Selecciona una técnica de minería",
+        ),
+
+        html.Div(id='cluster-variable-selectors'),
+
+        html.Div(id='mining-output-container'),
     ])
