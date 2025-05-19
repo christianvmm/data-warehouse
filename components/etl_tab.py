@@ -83,9 +83,10 @@ def etl_tab(filepath):
         html.H5("Vista previa de dataframe transformado:"),
         html.Div(id='etl-table', style={'marginTop': '20px'}),
 
-        dcc.Store(id='transformed-df', storage_type='session'),
+        # dcc.Store(id='transformed-df', storage_type='memory'),
+        dcc.Store(id='transformed-filepath', storage_type='session'),
         html.Div([
-            html.Label("Selecciona formato de descarga:"),
+            html.Label("Selecciona el formato de descarga:"),
             dcc.RadioItems(
                 id='download-format',
                 options=[

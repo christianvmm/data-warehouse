@@ -6,6 +6,7 @@ from dash.exceptions import PreventUpdate
 import datetime
 import pandas as pd
 import base64
+import plotly.express as px
 from utils.file_to_df import file_to_df
 from utils.read_file import read_file
 from utils.save_file import save_file
@@ -16,6 +17,10 @@ from components.mineria_tab import mineria_tab
 from components.resultados_tab import resultados_tab
 import tempfile
 
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+
 TMP_DIR = os.path.join(tempfile.gettempdir(), 'dash_uploads')
 os.makedirs(TMP_DIR, exist_ok=True) # Asegura que exista la carpeta
 
@@ -25,12 +30,14 @@ os.makedirs(TMP_DIR, exist_ok=True) # Asegura que exista la carpeta
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-# Configura límite de subida (opcional, para archivos > 16MB)
+# límite de subida (para archivos > 16MB)
 app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
 app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 
 app.layout = html.Div([
-    dcc.Store(id='stored-filename'),  # Guardamos solo el nombre del archivo
+    dcc.Store(id='transformed-filepath'), 
+    dcc.Store(id='stored-filename'),  # Guardar solo el nombre del archivo
+    
     
     html.Div([
         html.H3("Sube un archivo (.csv, .xlsx, .json):"),
@@ -45,13 +52,14 @@ app.layout = html.Div([
         dcc.Tab(label='Subir y ver datos', value='tab-upload'),
         dcc.Tab(label='Información', value='tab-info'),
         dcc.Tab(label='ETL', value='tab-etl'),
-        dcc.Tab(label='Minería de datos', value='tab-mineria'),
+        dcc.Tab(label='Estadisticas Descriptivas y Minería de datos', value='tab-mineria'),
         dcc.Tab(label='Resultados', value='tab-resultados'),
     ]),
     
     html.Div(id='tab-content')
     
 ])
+
 
 # Callback para guardar el archivo subido
 @callback(
@@ -67,11 +75,14 @@ def save_uploaded_file(contents, filename):
     # print("Archivo guardado en:", filepath)
     return filepath
 
+
+
+
 # Callback para ETL
 @callback(
     Output('etl-table', 'children'),
     Output('etl-feedback', 'children'),
-    Output('transformed-df', 'data', allow_duplicate=True),
+    Output('transformed-filepath', 'data'),
     Input('etl-apply-button', 'n_clicks'),
     # Limpieza
     State('etl-drop-columns', 'value'),
@@ -86,7 +97,7 @@ def save_uploaded_file(contents, filename):
     
     prevent_initial_call=True
 )
-def apply_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
+def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
               normalize_cols, filter_col, filter_min, filter_max, filepath):
     if filepath is None:
         return no_update, "No hay archivo cargado."
@@ -163,6 +174,10 @@ def apply_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
             df = df[df[filter_col] <= filter_max]
         feedback_msgs.append(f"Filtrado aplicado en '{filter_col}'. Filas reducidas de {original_len} a {len(df)}.")
 
+    # Guardar el dataframe transformado en un archivo temporal
+    filename = f"processed_{uuid.uuid4().hex}.csv"
+    fullpath = os.path.join(TMP_DIR, filename)
+    df.to_csv(fullpath, index=False)
 
     # Mostrar tabla
     table = dash_table.DataTable(
@@ -172,7 +187,18 @@ def apply_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
         style_cell={'textAlign': 'left'}
     )
 
-    return table, html.Ul([html.Li(msg) for msg in feedback_msgs]), df.to_json(date_format='iso', orient='split')
+    # feedback = f"Archivo procesado guardado: {filename}"
+
+    # return table, html.Ul([html.Li(msg) for msg in feedback_msgs]), df.to_json(date_format='iso', orient='split')
+    # return (
+    #     table,
+    #     html.Ul([html.Li(msg) for msg in feedback_msgs]),
+    #     {
+    #         'columns': df.columns.tolist(),
+    #         'data': df.to_dict('records')
+    #     }
+    # )
+    return table, html.Ul([html.Li(msg) for msg in feedback_msgs]), filename
 
 # Callback para descargar el archivo transformado
 @callback(
@@ -204,14 +230,165 @@ def download_file(n_clicks, df_json, format_selected):
     else:
         raise PreventUpdate
 
+
+# Callback para graficos
+@callback(
+    Output('eda-plots-container', 'children'),
+    Input('eda-numeric-dropdown', 'value'),
+    State('transformed-filepath', 'data'),
+    prevent_initial_call=True
+)
+def update_eda_graficos(selected_col, processed_filename):
+    if selected_col is None or processed_filename is None:
+        return html.Div("No hay columna seleccionada o datos procesados.")
+
+    fullpath = os.path.join(TMP_DIR, processed_filename)
+    if not os.path.exists(fullpath):
+        return html.Div("Archivo procesado no encontrado.")
+
+    df = pd.read_csv(fullpath)
+
+    fig_hist = px.histogram(df, x=selected_col, nbins=30, title=f"Histograma de Columna '{selected_col}'")
+    fig_box = px.box(df, y=selected_col, title=f"Boxplot de Columna '{selected_col}'")
+
+    return html.Div([
+        dcc.Graph(figure=fig_hist),
+        dcc.Graph(figure=fig_box)
+    ])
+
+
+
+# Callback para tecnicas de datamining
+# @callback(
+#     Output('mining-output-container', 'children'),
+#     Input('mining-technique-dropdown', 'value'),
+#     Input('cluster-x-dropdown', 'value'),
+#     Input('cluster-y-dropdown', 'value'),
+#     State('transformed-filepath', 'data'),
+#     prevent_initial_call=True
+# )
+# def aplicar_tecnica(tecnica, x_col, y_col, processed_filename):
+#     if not processed_filename:
+#         return html.Div("No hay archivo procesado disponible.")
+
+#     fullpath = os.path.join(TMP_DIR, processed_filename)
+#     if not os.path.exists(fullpath):
+#         return html.Div("Archivo no encontrado.")
+
+#     df = pd.read_csv(fullpath)
+
+#     if tecnica == 'kmeans':
+#         if not x_col or not y_col:
+#             return html.Div("Selecciona dos columnas numéricas.")
+
+#         if x_col not in df.columns or y_col not in df.columns:
+#             return html.Div("Columnas inválidas.")
+
+#         X = df[[x_col, y_col]].dropna()
+#         from sklearn.cluster import KMeans
+#         import plotly.express as px
+
+#         kmeans = KMeans(n_clusters=3, random_state=0).fit(X)
+#         X['cluster'] = kmeans.labels_
+
+#         fig = px.scatter(
+#             X, x=x_col, y=y_col, color=X['cluster'].astype(str),
+#             title='Clustering con K-Means',
+#             color_discrete_sequence=px.colors.qualitative.Set1
+#         )
+
+#         return dcc.Graph(figure=fig)
+
+#     elif tecnica == 'decision_tree':
+#         return html.Div("Árbol de decisión aún no implementado.")
+
+#     elif tecnica == 'linear_regression':
+#         return html.Div("Regresión lineal aún no implementada.")
+
+#     return html.Div("Técnica no reconocida.")
+
+@callback(
+    Output('cluster-variable-selectors', 'children'),
+    Input('mining-technique-dropdown', 'value'),
+    State('transformed-filepath', 'data'),
+    prevent_initial_call=True
+)
+def mostrar_dropdowns_cluster(tecnica, processed_filename):
+    if tecnica != 'kmeans' or not processed_filename:
+        return []
+
+    fullpath = os.path.join(TMP_DIR, processed_filename)
+    if not os.path.exists(fullpath):
+        return html.Div("Archivo no encontrado.")
+
+    df = pd.read_csv(fullpath)
+    df = df.loc[:, ~df.columns.duplicated()]  # Eliminamos columnas duplicadas
+
+    numeric_cols = df.select_dtypes(include='number').columns.tolist()
+
+    if len(numeric_cols) < 2:
+        return html.Div("No hay suficientes columnas numéricas para clustering.")
+
+    options = [{'label': col, 'value': col} for col in numeric_cols]
+
+    return html.Div([
+        html.Label("Selecciona columna X:"),
+        dcc.Dropdown(id='cluster-x-dropdown', options=options, value=numeric_cols[0]),
+        html.Label("Selecciona columna Y:"),
+        dcc.Dropdown(id='cluster-y-dropdown', options=options, value=numeric_cols[1])
+    ])
+
+
+@callback(
+    Output('mining-output-container', 'children'),
+    Input('cluster-x-dropdown', 'value'),
+    Input('cluster-y-dropdown', 'value'),
+    State('mining-technique-dropdown', 'value'),
+    State('transformed-filepath', 'data'),
+    prevent_initial_call=True
+)
+def aplicar_tecnica_cluster(x_col, y_col, tecnica, processed_filename):
+    if tecnica != 'kmeans':
+        return html.Div("Selecciona una técnica válida.")
+
+    if not x_col or not y_col or not processed_filename:
+        return html.Div("Faltan columnas o archivo.")
+
+    fullpath = os.path.join(TMP_DIR, processed_filename)
+    if not os.path.exists(fullpath):
+        return html.Div("Archivo no encontrado.")
+
+    df = pd.read_csv(fullpath)
+    df = df.loc[:, ~df.columns.duplicated()]  # Eliminar columnas duplicadas
+
+    if x_col not in df.columns or y_col not in df.columns:
+        return html.Div("Columnas inválidas.")
+
+    X = df[[x_col, y_col]].dropna()
+
+    from sklearn.cluster import KMeans
+    import plotly.express as px
+
+    kmeans = KMeans(n_clusters=3, random_state=0).fit(X)
+    X['cluster'] = kmeans.labels_
+
+    fig = px.scatter(
+        X, x=x_col, y=y_col, color=X['cluster'].astype(str),
+        title='Clustering con K-Means',
+        color_discrete_sequence=px.colors.qualitative.Set1
+    )
+
+    return dcc.Graph(figure=fig)
+
 # Callback para renderizar el contenido de la pestaña seleccionada
 @callback(
     Output('tab-content', 'children'),
     Input('tabs', 'value'),
     Input('stored-filename', 'data'),
+    State('transformed-filepath', 'data')
 )
-def render_tab(tab, filepath):
-    print("Callback de render_tab activado")
+def render_tab(tab, filepath, processed_filename):
+    # print("Callback de render_tab activado")
     if tab == 'tab-upload':
         return upload_tab(filepath)
     
@@ -222,7 +399,9 @@ def render_tab(tab, filepath):
         return etl_tab(filepath)
     
     elif tab == 'tab-mineria':
-        return mineria_tab(filepath)
+        # print("DEBUG: df_dict recibido en minería =", df_dict) 
+        print("DEBUG - Archivo procesado que se pasa:", processed_filename)
+        return mineria_tab(processed_filename)
     
     elif tab == 'tab-resultados':
         return resultados_tab(filepath)
