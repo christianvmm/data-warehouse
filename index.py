@@ -6,6 +6,7 @@ from dash.exceptions import PreventUpdate
 import datetime
 import pandas as pd
 import base64
+import plotly.express as px
 from utils.file_to_df import file_to_df
 from utils.read_file import read_file
 from utils.save_file import save_file
@@ -30,8 +31,9 @@ app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callbac
 app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 
 app.layout = html.Div([
-    dcc.Store(id='transformed-filepath', storage_type='memory'), 
-    dcc.Store(id='stored-filename'),  # Guardamos solo el nombre del archivo
+    dcc.Store(id='transformed-filepath'), 
+    dcc.Store(id='stored-filename'),  # Guardar solo el nombre del archivo
+    
     
     html.Div([
         html.H3("Sube un archivo (.csv, .xlsx, .json):"),
@@ -46,7 +48,7 @@ app.layout = html.Div([
         dcc.Tab(label='Subir y ver datos', value='tab-upload'),
         dcc.Tab(label='Información', value='tab-info'),
         dcc.Tab(label='ETL', value='tab-etl'),
-        dcc.Tab(label='Minería de datos', value='tab-mineria'),
+        dcc.Tab(label='Estadisticas Descriptivas y Minería de datos', value='tab-mineria'),
         dcc.Tab(label='Resultados', value='tab-resultados'),
     ]),
     
@@ -225,6 +227,31 @@ def download_file(n_clicks, df_json, format_selected):
         raise PreventUpdate
 
 
+# Callback para graficos
+@callback(
+    Output('eda-plots-container', 'children'),
+    Input('eda-numeric-dropdown', 'value'),
+    State('transformed-filepath', 'data'),
+    prevent_initial_call=True
+)
+def update_eda_graphs(selected_col, processed_filename):
+    if selected_col is None or processed_filename is None:
+        return html.Div("No hay columna seleccionada o datos procesados.")
+
+    fullpath = os.path.join(TMP_DIR, processed_filename)
+    if not os.path.exists(fullpath):
+        return html.Div("Archivo procesado no encontrado.")
+
+    df = pd.read_csv(fullpath)
+
+    fig_hist = px.histogram(df, x=selected_col, nbins=30, title=f"Histograma de Columna '{selected_col}'")
+    fig_box = px.box(df, y=selected_col, title=f"Boxplot de Columna '{selected_col}'")
+
+    return html.Div([
+        dcc.Graph(figure=fig_hist),
+        dcc.Graph(figure=fig_box)
+    ])
+
 
 # Callback para renderizar el contenido de la pestaña seleccionada
 @callback(
@@ -246,6 +273,7 @@ def render_tab(tab, filepath, processed_filename):
     
     elif tab == 'tab-mineria':
         # print("DEBUG: df_dict recibido en minería =", df_dict) 
+        print("DEBUG - Archivo procesado que se pasa:", processed_filename)
         return mineria_tab(processed_filename)
     
     elif tab == 'tab-resultados':
