@@ -2,6 +2,7 @@ import os
 import io
 import uuid
 from dash import Dash, dcc, html, dash_table, Input, Output, State, callback, no_update
+import dash
 from dash.exceptions import PreventUpdate
 import datetime
 import pandas as pd
@@ -19,6 +20,10 @@ import tempfile
 
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
 
 
 TMP_DIR = os.path.join(tempfile.gettempdir(), 'dash_uploads')
@@ -257,62 +262,118 @@ def update_eda_graficos(selected_col, processed_filename):
     ])
 
 
-
-# Callback para tecnicas de datamining
-# @callback(
-#     Output('mining-output-container', 'children'),
-#     Input('mining-technique-dropdown', 'value'),
-#     Input('cluster-x-dropdown', 'value'),
-#     Input('cluster-y-dropdown', 'value'),
-#     State('transformed-filepath', 'data'),
-#     prevent_initial_call=True
-# )
-# def aplicar_tecnica(tecnica, x_col, y_col, processed_filename):
-#     if not processed_filename:
-#         return html.Div("No hay archivo procesado disponible.")
-
-#     fullpath = os.path.join(TMP_DIR, processed_filename)
-#     if not os.path.exists(fullpath):
-#         return html.Div("Archivo no encontrado.")
-
-#     df = pd.read_csv(fullpath)
-
-#     if tecnica == 'kmeans':
-#         if not x_col or not y_col:
-#             return html.Div("Selecciona dos columnas numéricas.")
-
-#         if x_col not in df.columns or y_col not in df.columns:
-#             return html.Div("Columnas inválidas.")
-
-#         X = df[[x_col, y_col]].dropna()
-#         from sklearn.cluster import KMeans
-#         import plotly.express as px
-
-#         kmeans = KMeans(n_clusters=3, random_state=0).fit(X)
-#         X['cluster'] = kmeans.labels_
-
-#         fig = px.scatter(
-#             X, x=x_col, y=y_col, color=X['cluster'].astype(str),
-#             title='Clustering con K-Means',
-#             color_discrete_sequence=px.colors.qualitative.Set1
-#         )
-
-#         return dcc.Graph(figure=fig)
-
-#     elif tecnica == 'decision_tree':
-#         return html.Div("Árbol de decisión aún no implementado.")
-
-#     elif tecnica == 'linear_regression':
-#         return html.Div("Regresión lineal aún no implementada.")
-
-#     return html.Div("Técnica no reconocida.")
-
 @callback(
     Output('cluster-variable-selectors', 'children'),
     Input('mining-technique-dropdown', 'value'),
     State('transformed-filepath', 'data'),
+)
+def actualizar_dropdowns(tecnica, processed_filename):
+    if tecnica == 'kmeans':
+        return mostrar_dropdowns_cluster(tecnica, processed_filename)
+    elif tecnica == 'decision_tree':
+        return mostrar_dropdowns_classification(tecnica, processed_filename)
+    elif tecnica == 'regression':
+        return mostrar_dropdowns_regresion(tecnica, processed_filename)
+    return html.Div()
+
+
+# Callback para tecnicas de datamining
+# @callback(
+#     Output('mining-output-container', 'children'),
+#     [
+#         Input('mining-technique-dropdown', 'value'),
+#         Input('cluster-x-dropdown', 'value'),
+#         Input('cluster-y-dropdown', 'value'),
+#         Input('target-column-dropdown', 'value'),
+#         Input('feature-columns-dropdown', 'value'),
+#         Input('regression-x-dropdown', 'value'),
+#         Input('regression-y-dropdown', 'value'),
+#     ],
+#     State('transformed-filepath', 'data'),
+#     prevent_initial_call=True
+# )
+# def aplicar_tecnica(tecnica, x_cluster, y_cluster, target_col, feature_cols, x_reg, y_reg, processed_filename):
+#     ctx = dash.callback_context
+
+#     if not processed_filename:
+#         return html.Div("No hay archivo disponible.")
+
+#     df = pd.read_csv(os.path.join(TMP_DIR, processed_filename))
+#     df = df.loc[:, ~df.columns.duplicated()]
+
+#     if tecnica == 'kmeans':
+#         if not x_cluster or not y_cluster:
+#             return html.Div("Selecciona columnas X e Y para clustering.")
+#         X = df[[x_cluster, y_cluster]].dropna()
+#         model = KMeans(n_clusters=3).fit(X)
+#         X['cluster'] = model.labels_
+#         fig = px.scatter(X, x=x_cluster, y=y_cluster, color=X['cluster'].astype(str))
+#         return dcc.Graph(figure=fig)
+
+#     elif tecnica == 'decision_tree':
+#         if not target_col or not feature_cols:
+#             return html.Div("Selecciona columnas para clasificación.")
+#         df = df.dropna(subset=[target_col] + feature_cols)
+#         le = LabelEncoder()
+#         y = le.fit_transform(df[target_col])
+#         X = df[feature_cols]
+#         model = DecisionTreeClassifier(max_depth=3)
+#         model.fit(X, y)
+#         fig, ax = plt.subplots(figsize=(12, 6))
+#         plot_tree(model, feature_names=feature_cols, class_names=le.classes_, filled=True, ax=ax)
+#         buf = io.BytesIO()
+#         plt.savefig(buf, format="png")
+#         buf.seek(0)
+#         img_encoded = base64.b64encode(buf.read()).decode('utf-8')
+#         return html.Div([html.Img(src=f'data:image/png;base64,{img_encoded}')])
+
+#     elif tecnica == 'regression':
+#         if not x_reg or not y_reg:
+#             return html.Div("Selecciona variables para regresión.")
+#         df = df[[x_reg, y_reg]].dropna()
+#         model = LinearRegression()
+#         model.fit(df[[x_reg]], df[y_reg])
+#         df['pred'] = model.predict(df[[x_reg]])
+#         fig = px.scatter(df, x=x_reg, y=y_reg)
+#         fig.add_traces(px.line(df, x=x_reg, y='pred').data)
+#         return dcc.Graph(figure=fig)
+
+#     return html.Div("Técnica no reconocida.")
+
+@callback(
+    Output('mining-output-container', 'children'),
+    [
+        Input('cluster-x-dropdown', 'value'),
+        Input('cluster-y-dropdown', 'value'),
+        Input('target-column-dropdown', 'value'),
+        Input('feature-columns-dropdown', 'value'),
+        Input('regression-x-dropdown', 'value'),
+        Input('regression-y-dropdown', 'value'),
+        State('mining-technique-dropdown', 'value'),
+        State('transformed-filepath', 'data'),
+    ],
     prevent_initial_call=True
 )
+def aplicar_tecnica_general(x_cluster, y_cluster, target_col, feature_cols, x_reg, y_reg, tecnica, processed_filename):
+    if not processed_filename or not tecnica:
+        return html.Div("No hay datos o técnica seleccionada.")
+
+    if tecnica == 'kmeans':
+        return aplicar_tecnica_cluster(x_cluster, y_cluster, tecnica, processed_filename)
+
+    elif tecnica == 'decision_tree':
+        return aplicar_tecnica_clasificacion(target_col, feature_cols, tecnica, processed_filename)
+
+    elif tecnica == 'regression':
+        return aplicar_tecnica_regresion(x_reg, y_reg, tecnica, processed_filename)
+
+    return html.Div("Técnica no reconocida.")
+
+
+
+#1 OPCION DE MINERA | APLICAR CLUSTER
+
+# DROPDOWN PARA MOSTRAR EL CLUSTER
 def mostrar_dropdowns_cluster(tecnica, processed_filename):
     if tecnica != 'kmeans' or not processed_filename:
         return []
@@ -339,14 +400,7 @@ def mostrar_dropdowns_cluster(tecnica, processed_filename):
     ])
 
 
-@callback(
-    Output('mining-output-container', 'children'),
-    Input('cluster-x-dropdown', 'value'),
-    Input('cluster-y-dropdown', 'value'),
-    State('mining-technique-dropdown', 'value'),
-    State('transformed-filepath', 'data'),
-    prevent_initial_call=True
-)
+# APLICAR CLUSTER
 def aplicar_tecnica_cluster(x_col, y_col, tecnica, processed_filename):
     if tecnica != 'kmeans':
         return html.Div("Selecciona una técnica válida.")
@@ -379,6 +433,145 @@ def aplicar_tecnica_cluster(x_col, y_col, tecnica, processed_filename):
     )
 
     return dcc.Graph(figure=fig)
+
+
+
+#2 OPCION DE MINERA | APLICAR CLASIFICACION
+
+# DROPDOWN PARA CLASIFICACION
+def mostrar_dropdowns_classification(tecnica, processed_filename):
+    if tecnica != 'decision_tree' or not processed_filename:
+        return []
+
+    fullpath = os.path.join(TMP_DIR, processed_filename)
+    if not os.path.exists(fullpath):
+        return html.Div("Archivo no encontrado.")
+
+    df = pd.read_csv(fullpath)
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    numeric_cols = df.select_dtypes(include='number').columns.tolist()
+    categorical_cols = df.select_dtypes(include='object').columns.tolist()
+
+    if not numeric_cols or not categorical_cols:
+        return html.Div("No hay suficientes columnas para clasificación.")
+
+    return html.Div([
+        html.Label("Selecciona columna objetivo (categoría):"),
+        dcc.Dropdown(id='target-column-dropdown', options=[{'label': col, 'value': col} for col in categorical_cols], value=categorical_cols[0]),
+        html.Label("Selecciona variables predictoras:"),
+        dcc.Dropdown(id='feature-columns-dropdown', options=[{'label': col, 'value': col} for col in numeric_cols], value=numeric_cols[:2], multi=True)
+    ])
+
+# APLICAR CLASIFICACION
+def aplicar_tecnica_clasificacion(target_col, feature_cols, tecnica, processed_filename):
+    if tecnica != 'decision_tree':
+        return html.Div("Técnica no válida.")
+
+    if not target_col or not feature_cols or not processed_filename:
+        return html.Div("Faltan datos.")
+
+    fullpath = os.path.join(TMP_DIR, processed_filename)
+    if not os.path.exists(fullpath):
+        return html.Div("Archivo no encontrado.")
+
+    import pandas as pd
+    from sklearn.tree import DecisionTreeClassifier, plot_tree
+    from sklearn.preprocessing import LabelEncoder
+    import matplotlib.pyplot as plt
+    import plotly.tools as tls
+    import io
+    import base64
+
+    df = pd.read_csv(fullpath)
+    df = df.loc[:, ~df.columns.duplicated()]
+    df = df.dropna(subset=[target_col] + feature_cols)
+
+    le = LabelEncoder()
+    y = le.fit_transform(df[target_col])
+    X = df[feature_cols]
+
+    clf = DecisionTreeClassifier(max_depth=3)
+    clf.fit(X, y)
+
+    # Graficar árbol
+    fig, ax = plt.subplots(figsize=(12, 6))
+    plot_tree(clf, feature_names=feature_cols, class_names=le.classes_, filled=True, ax=ax)
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    encoded_image = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+    plt.close(fig)
+
+    return html.Div([
+        html.H5("Árbol de Decisión:"),
+        html.Img(src='data:image/png;base64,{}'.format(encoded_image))
+    ])
+
+
+
+#3 OPCION DE MINERA | APLICAR REGRESION
+
+# DROPDOWN PARA REGRESION
+def mostrar_dropdowns_regresion(tecnica, processed_filename):
+    if tecnica != 'regression' or not processed_filename:
+        return []
+
+    fullpath = os.path.join(TMP_DIR, processed_filename)
+    if not os.path.exists(fullpath):
+        return html.Div("Archivo no encontrado.")
+
+    df = pd.read_csv(fullpath)
+    df = df.loc[:, ~df.columns.duplicated()]
+    numeric_cols = df.select_dtypes(include='number').columns.tolist()
+
+    if len(numeric_cols) < 2:
+        return html.Div("Se requieren al menos 2 columnas numéricas.")
+
+    return html.Div([
+        html.Label("Variable independiente (X):"),
+        dcc.Dropdown(id='regression-x-dropdown', options=[{'label': col, 'value': col} for col in numeric_cols], value=numeric_cols[0]),
+        html.Label("Variable dependiente (Y):"),
+        dcc.Dropdown(id='regression-y-dropdown', options=[{'label': col, 'value': col} for col in numeric_cols if col != numeric_cols[0]], value=numeric_cols[1])
+    ])
+
+
+# CALLBACK PARA LA REGRESION
+def aplicar_tecnica_regresion(x_col, y_col, tecnica, processed_filename):
+    if tecnica != 'regression':
+        return html.Div("Técnica no válida.")
+
+    if not x_col or not y_col or not processed_filename:
+        return html.Div("Faltan datos.")
+
+    import pandas as pd
+    import plotly.express as px
+    from sklearn.linear_model import LinearRegression
+    import numpy as np
+
+    fullpath = os.path.join(TMP_DIR, processed_filename)
+    if not os.path.exists(fullpath):
+        return html.Div("Archivo no encontrado.")
+
+    df = pd.read_csv(fullpath)
+    df = df.loc[:, ~df.columns.duplicated()]
+    df = df[[x_col, y_col]].dropna()
+
+    X = df[[x_col]].values
+    y = df[y_col].values
+
+    model = LinearRegression()
+    model.fit(X, y)
+    y_pred = model.predict(X)
+
+    df['Predicción'] = y_pred
+
+    fig = px.scatter(df, x=x_col, y=y_col, title="Regresión Lineal")
+    fig.add_traces(px.line(df, x=x_col, y='Predicción').data)
+
+    return dcc.Graph(figure=fig)
+
 
 # Callback para renderizar el contenido de la pestaña seleccionada
 @callback(
