@@ -1,0 +1,11 @@
+/* Estilo para hacer visibles y claros los checkboxes en Dash */
+.checklist-container input[type="checkbox"] {
+  accent-color: teal; /* cambia el color cuando está seleccionado (navegadores modernos) */
+  transform: scale(1.2); /* agranda el checkbox */
+  cursor: pointer;
+}
+
+.checklist-container label {
+  cursor: pointer;
+  margin-bottom: 10px;
+}

@@ -23,26 +23,78 @@
 #         style_table={'overflowX': 'auto'},
 #         page_size=10
 #     )
-
-
 from dash import html, dash_table
+import dash_bootstrap_components as dbc
 from utils.file_to_df import file_to_df
 
 def upload_tab(filepath):
     if not filepath:
-        return html.Div("No se ha subido ningún archivo aún.")
-    
+        return dbc.Container([
+            dbc.Row([
+                dbc.Col([
+                    dbc.Alert(
+                        "No se ha subido ningún archivo.",
+                        color="warning",
+                        style={
+                            "backgroundColor": "#fff8e1", 
+                            "borderColor": "#ffeeba",
+                            "color": "#856404"
+                        },
+                        dismissable=True
+                    )
+                ])
+            ])
+        ])
+
     try:
         df = file_to_df(filepath)
     except Exception as e:
-        return html.Div(f"Error al leer el archivo: {str(e)}")
-    
-    return html.Div([
-        html.H4("Vista preliminar del archivo:"),
-        dash_table.DataTable(
-            data=df.head(10).to_dict('records'),
-            columns=[{'name': col, 'id': col} for col in df.columns],
-            page_size=10,
-            style_table={'overflowX': 'auto'}
-        )
-    ])
+        return dbc.Container([
+            dbc.Row([
+                dbc.Col([
+                    dbc.Alert(
+                        f"Error al leer el archivo: {str(e)}",
+                        color="danger",
+                        style={
+                            "backgroundColor": "#f8d7da",
+                            "borderColor": "#f5c6cb",
+                            "color": "#721c24"
+                        },
+                        dismissable=True
+                    )
+                ])
+            ])
+        ])
+
+    return dbc.Container([
+        dbc.Row([
+            dbc.Col([
+                html.H5(
+                    "📄 Vista previa del archivo",
+                    className="text-center mb-4",
+                    style={"color": "#1a237e"} 
+                )
+            ])
+        ]),
+        dbc.Row([
+            dbc.Col([
+                dbc.Card(
+                    dbc.CardBody([
+                        dash_table.DataTable(
+                            data=df.head(10).to_dict('records'),
+                            columns=[{'name': col, 'id': col} for col in df.columns],
+                            page_size=10,
+                            style_table={'overflowX': 'auto'},
+                            style_header={
+                                'backgroundColor': "#3f5cad",
+                                'color': 'white',
+                                'fontWeight': 'bold'
+                            },
+                            style_cell={'padding': '10px', 'textAlign': 'left'}
+                        )
+                    ]),
+                    className="shadow-sm rounded"
+                )
+            ], width=12)
+        ])
+    ], fluid=True)

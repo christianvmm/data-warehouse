@@ -17,6 +17,8 @@ from components.mineria_tab import mineria_tab
 from components.resultados_tab import resultados_tab
 import tempfile
 
+import dash_bootstrap_components as dbc
+
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
@@ -28,38 +30,66 @@ os.makedirs(TMP_DIR, exist_ok=True) # Asegura que exista la carpeta
 # os.makedirs(TMP_DIR, exist_ok=True)  # Asegura que exista la carpeta
 
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+# external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+# external_stylesheets = ['https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css']
 
 # límite de subida (para archivos > 16MB)
-app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
+app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY], suppress_callback_exceptions=True)
 app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
+app.layout = dbc.Container([
 
-app.layout = html.Div([
-    dcc.Store(id='transformed-filepath'), 
-    dcc.Store(id='stored-filename'),  # Guardar solo el nombre del archivo
-    
-    
-    html.Div([
-        html.H3("Sube un archivo (.csv, .xlsx, .json):"),
-        dcc.Upload(
-            id='upload-data',
-            children=html.Button('Subir Archivo'),
-            multiple=False
+    dcc.Store(id='transformed-filepath'),
+    dcc.Store(id='stored-filename'),
+
+    dbc.Row([
+        dbc.Col(
+            html.H3(
+                "Hotel Reservations",
+                className="text-center text-primary",
+                style={'marginBottom': '30px', 'marginTop': '30px'}
+            ),
+            width=12
         )
-    ], style={'textAlign': 'center', 'marginBottom': '20px'}),
-
-    dcc.Tabs(id='tabs', value='tab-upload', children=[
-        dcc.Tab(label='Subir y ver datos', value='tab-upload'),
-        dcc.Tab(label='Información', value='tab-info'),
-        dcc.Tab(label='ETL', value='tab-etl'),
-        dcc.Tab(label='Estadisticas Descriptivas y Minería de datos', value='tab-mineria'),
-        dcc.Tab(label='Resultados', value='tab-resultados'),
     ]),
-    
-    html.Div(id='tab-content')
-    
-])
 
+    dbc.Row([
+        dbc.Col(
+            dcc.Upload(
+                id='upload-data',
+                children=dbc.Button('Subir Archivo', color='primary', className='me-2'),
+                multiple=False,
+                style={'display': 'block', 'margin': '0 auto', 'width': '150px', 'textAlign': 'center'}
+            ),
+            width=12
+        )
+    ], justify='center'),
+
+    dbc.Row([
+        dbc.Col(
+            dcc.Tabs(
+                id='tabs',
+                value='tab-upload',
+                children=[
+                    dcc.Tab(label='Subir y ver datos', value='tab-upload'),
+                    dcc.Tab(label='Información', value='tab-info'),
+                    dcc.Tab(label='ETL', value='tab-etl'),
+                    dcc.Tab(label='Minería de datos', value='tab-mineria'),
+                    dcc.Tab(label='Resultados', value='tab-resultados'),
+                ],
+                style={'maxWidth': '1800px', 'margin': '20px auto'}
+            ),
+            width=12
+        )
+    ], justify='center'),
+
+    dbc.Row([
+        dbc.Col(
+            html.Div(id='tab-content', style={'marginTop': '30px', 'maxWidth': '4000px'}),
+            width=12
+        )
+    ])
+
+], fluid=True)
 
 # Callback para guardar el archivo subido
 @callback(

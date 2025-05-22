@@ -1,30 +1,34 @@
-import pandas as pd
-from dash import html, dcc, dash_table
 import os
 import tempfile
+import pandas as pd
+from dash import html, dcc, dash_table
+import dash_bootstrap_components as dbc
 
 TMP_DIR = os.path.join(tempfile.gettempdir(), 'dash_uploads')
 
 def mineria_tab(processed_filename):
     if processed_filename is None:
-        return html.Div("No hay datos procesados desde ETL.")
+        return dbc.Container([
+            dbc.Alert("No hay datos procesados desde ETL.", color="secondary", className="mt-4")
+        ], fluid=True)
 
     fullpath = os.path.join(TMP_DIR, processed_filename)
     if not os.path.exists(fullpath):
-        return html.Div("Archivo procesado no encontrado.")
+        return dbc.Container([
+            dbc.Alert("Archivo procesado no encontrado.", color="danger", className="mt-4")
+        ], fluid=True)
 
     df = pd.read_csv(fullpath)
-
     numeric_cols = df.select_dtypes(include='number').columns.tolist()
+    if not numeric_cols:
+        return dbc.Container([
+            dbc.Alert("No se encontraron columnas numéricas.", color="warning", className="mt-4")
+        ], fluid=True)
 
     
-    if not numeric_cols:
-        return html.Div("No se encontraron columnas numéricas.")
-
     numeric_df = df[numeric_cols]
     stats_df = numeric_df.describe().T
     stats_df["Mediana"] = numeric_df.median()
-
     stats_df.rename(columns={
         'count': 'Cantidad',
         'mean': 'Media',
@@ -32,55 +36,76 @@ def mineria_tab(processed_filename):
         'min': 'Mínimo',
         'max': 'Máximo'
     }, inplace=True)
-
     stats_df.reset_index(inplace=True)
     stats_df.rename(columns={'index': 'Variable'}, inplace=True)
 
     stats_table = dash_table.DataTable(
         data=stats_df.to_dict('records'),
         columns=[{"name": col, "id": col} for col in stats_df.columns],
+        page_size=10,
         style_table={'overflowX': 'auto'},
-        style_cell={'textAlign': 'left'},
-        page_size=10
+        style_header={'backgroundColor': '#1e3a8a', 'color': 'white'},
+        style_cell={'padding': '5px', 'textAlign': 'left'}
     )
 
-    return html.Div([
-        dcc.Store(id='transformed-filepath', data=processed_filename), 
-        html.H4("Exploración y Minería de Datos"),
-        html.P(f"Dimensiones del dataset: {df.shape[0]} filas y {df.shape[1]} columnas."),
+    return dbc.Container(fluid=True, style={'paddingTop': '30px', 'paddingBottom': '30px'}, children=[
 
-        html.H5("Estadísticas Descriptivas de las Columnas Numéricas"),
-        stats_table,
+        
+        dbc.Row(dbc.Col(html.H4("Exploración y Minería de Datos", className="text-center text-primary mb-4"))),
 
-        html.Hr(),
+        dbc.Row([
+            dbc.Col(html.P(f"Dimensiones del dataset: {df.shape[0]} filas × {df.shape[1]} columnas."),
+                    width=12, className="mb-4")
+        ]),
 
-        html.H5("Visualización de Datos Numéricos"),
-        html.P("Selecciona una columna numérica:"),
+        
+        dbc.Card([
+            dbc.CardHeader(html.H5("Estadísticas Descriptivas de Columnas Numéricas")),
+            dbc.CardBody(stats_table)
+        ], className="mb-4 shadow-sm"),
 
-        dcc.Dropdown(
-            id='eda-numeric-dropdown',
-            options=[{'label': col, 'value': col} for col in numeric_cols],
-            value=numeric_cols[0], 
-            clearable=False,
-            placeholder="Selecciona una columna",
-        ),
+        
+        dbc.Card([
+            dbc.CardHeader(html.H5("Visualización de Datos Numéricos")),
+            dbc.CardBody([
+                dbc.Row([
+                    dbc.Col([
+                        html.Label("Selecciona una columna numérica:", className="form-label"),
+                        dcc.Dropdown(
+                            id='eda-numeric-dropdown',
+                            options=[{'label': col, 'value': col} for col in numeric_cols],
+                            value=numeric_cols[0],
+                            clearable=False
+                        )
+                    ], width=6)
+                ], className="mb-3"),
+                html.Div(id='eda-plots-container')
+            ])
+        ], className="mb-4 shadow-sm"),
 
-        html.Div(id='eda-plots-container'), 
-        html.Hr(),
+        
+        dbc.Card([
+            dbc.CardHeader(html.H5("Técnicas de Minería de Datos")),
+            dbc.CardBody([
+                dbc.Row([
+                    dbc.Col([
+                        html.Label("Técnica a aplicar:", className="form-label"),
+                        dcc.Dropdown(
+                            id='mining-technique-dropdown',
+                            options=[
+                                {'label': 'Clustering - K-Means', 'value': 'kmeans'},
+                                {'label': 'Clasificación - Árbol de Decisión', 'value': 'decision_tree'},
+                                {'label': 'Regresión Lineal', 'value': 'regression'}
+                            ],
+                            placeholder="Selecciona una técnica"
+                        )
+                    ], width=6)
+                ], className="mb-3"),
+                html.Div(id='cluster-variable-selectors', className="mb-3"),
+                html.Div(id='mining-output-container')
+            ])
+        ], className="mb-4 shadow-sm"),
 
-        html.H5("Técnicas de Minería de Datos"),
-        html.P("Técnica a aplicar:"),
-        dcc.Dropdown(
-            id='mining-technique-dropdown',
-            options=[
-                {'label': 'Clustering - K-Means', 'value': 'kmeans'},
-                {'label': 'Clasificación - Árbol de Decisión', 'value': 'decision_tree'},
-                {'label': 'Regresión Lineal', 'value': 'regression'}
-            ],
-            placeholder="Selecciona una técnica de minería",
-        ),
-
-        html.Div(id='cluster-variable-selectors'),
-
-        html.Div(id='mining-output-container'),
+        
+        dcc.Store(id='transformed-filepath', data=processed_filename)
     ])
