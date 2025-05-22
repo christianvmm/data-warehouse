@@ -94,16 +94,18 @@ def mineria_tab(processed_filename):
                             id='mining-technique-dropdown',
                             options=[
                                 {'label': 'Clustering - K-Means', 'value': 'kmeans'},
-                                {'label': 'Clasificación - Árbol de Decisión', 'value': 'decision_tree'},
+                                {'label': 'Clasificación - Árbol de Decisión', 'value': 'classification'},
                                 {'label': 'Regresión Lineal', 'value': 'regression'}
                             ],
                             placeholder="Selecciona una técnica"
                         )
                     ], width=6)
                 ], className="mb-3"),
+                
                 html.Div(id='cluster-variable-selectors', className="mb-3"),
                 html.Div(id='classification-variable-selectors'), 
                 html.Div(id='regression-variable-selectors'), 
+                html.Div(style={'height': '30px'}),  # Separador de 30px
                 html.Div(id='mining-output-container')
             ])
         ], className="mb-4 shadow-sm"),
