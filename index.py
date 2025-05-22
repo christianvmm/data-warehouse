@@ -316,7 +316,6 @@ def render_tab(tab, filepath, processed_filename):
     elif tab == 'tab-resultados':
         return resultados_tab(filepath)
     
-    
-        
+
 if __name__ == '__main__':
     app.run(debug=True)
