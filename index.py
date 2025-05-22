@@ -126,14 +126,16 @@ def save_uploaded_file(contents, filename):
     # Transformacion
     State('etl-normalize-columns', 'value'),
     State('etl-filter-column', 'value'),
-    State('etl-filter-min', 'value'),
-    State('etl-filter-max', 'value'),
+    # State('etl-filter-min', 'value'),
+    # State('etl-filter-max', 'value'),
+    # State('etl-to-numeric-columns', 'value'),
     State('stored-filename', 'data'),
     
     prevent_initial_call=True
 )
 def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
-              normalize_cols, filter_col, filter_min, filter_max, filepath):
+              normalize_cols, filter_max, filepath):
+    # print("Cols to numeric:", cols_to_numeric)
     if filepath is None:
         return no_update, "No hay archivo cargado."
 
@@ -201,13 +203,44 @@ def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
                     feedback_msgs.append(f"No se normalizó '{col}' (valor constante).")
 
     # 6 . Filtrado 
-    if filter_col and (filter_min is not None or filter_max is not None):
-        original_len = len(df)
-        if filter_min is not None:
-            df = df[df[filter_col] >= filter_min]
-        if filter_max is not None:
-            df = df[df[filter_col] <= filter_max]
-        feedback_msgs.append(f"Filtrado aplicado en '{filter_col}'. Filas reducidas de {original_len} a {len(df)}.")
+    # if filter_col and (filter_min is not None or filter_max is not None):
+    #     original_len = len(df)
+    #     if filter_min is not None:
+    #         df = df[df[filter_col] >= filter_min]
+    #     if filter_max is not None:
+    #         df = df[df[filter_col] <= filter_max]
+    #     feedback_msgs.append(f"Filtrado aplicado en '{filter_col}'. Filas reducidas de {original_len} a {len(df)}.")
+
+    # mapping = {
+    #     "Meal Plan 1": 1,
+    #     "Meal Plan 2": 2,
+    #     "Meal Plan 3": 3,
+    #     "Not Selected": 0,
+    #     # Puedes añadir más mapeos si tienes otros valores
+    # }
+
+    # def extract_number(text):
+    #     if isinstance(text, str):
+    #         match = re.search(r'(\d+)$', text)
+    #         if match:
+    #             return int(match.group(1))
+    #     return None
+
+    # if cols_to_numeric:
+    #     for col in cols_to_numeric:
+    #         try:
+    #             # Aplica mapeo primero
+    #             df[col] = df[col].map(mapping).fillna(df[col])
+                
+    #             # Después intenta extraer número de cadenas restantes
+    #             df[col] = df[col].apply(lambda x: extract_number(x) if isinstance(x, str) else x)
+                
+    #             # Convierte el resto a numérico (NaN para valores no convertibles)
+    #             df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    #             print(f"Columna '{col}' convertida correctamente a numérico.")
+    #         except Exception as e:
+    #             print(f"Error al convertir columna {col}: {e}")
 
     # Guardar el dataframe transformado en un archivo temporal
     filename = f"processed_{uuid.uuid4().hex}.csv"
@@ -318,6 +351,7 @@ def render_tab(tab, filepath, processed_filename):
     elif tab == 'tab-resultados':
         return resultados_tab(filepath)
     
-
+    
+        
 if __name__ == '__main__':
     app.run(debug=True)

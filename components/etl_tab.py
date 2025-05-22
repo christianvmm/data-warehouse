@@ -73,10 +73,18 @@ def etl_tab(filepath):
                                 options=[{'label': col, 'value': col} for col in df.select_dtypes(include='number').columns],
                                 placeholder='Columna numérica...'
                             ),
-                            dbc.Row([
-                                dbc.Col(dcc.Input(id='etl-filter-min', type='number', placeholder='Mínimo'), width=6),
-                                dbc.Col(dcc.Input(id='etl-filter-max', type='number', placeholder='Máximo'), width=6),
-                            ], className="mt-2")
+                            # html.Br(),
+                            # html.Label("Columnas a convertir a formato numérico:"),
+                            # dcc.Dropdown(
+                            #     id='etl-to-numeric-columns',
+                            #     options=[{'label': col, 'value': col} for col in df.select_dtypes(exclude='number').columns],
+                            #     multi=True,
+                            #     placeholder='Selecciona columnas no numéricas...'
+                            # ),
+                            # dbc.Row([
+                            #     dbc.Col(dcc.Input(id='etl-filter-min', type='number', placeholder='Mínimo'), width=6),
+                            #     dbc.Col(dcc.Input(id='etl-filter-max', type='number', placeholder='Máximo'), width=6),
+                            # ], className="mt-2")
                         ]),
                         className="shadow-sm rounded-4 p-4 bg-white",
                     ),
