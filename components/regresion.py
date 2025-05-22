@@ -46,13 +46,13 @@ def mostrar_dropdowns_regresion(tecnica, processed_filename):
     ])
 
 
-@callback(
-    Output('mining-output-container', 'children'),
-    Input('regression-target-dropdown', 'value'),
-    Input('regression-features-dropdown', 'value'),
-    State('mining-technique-dropdown', 'value'),
-    State('transformed-filepath', 'data'),
-)
+# @callback(
+#     Output('mining-output-container', 'children'),
+#     Input('regression-target-dropdown', 'value'),
+#     Input('regression-features-dropdown', 'value'),
+#     State('mining-technique-dropdown', 'value'),
+#     State('transformed-filepath', 'data'),
+# )
 def aplicar_tecnica_regresion(target_col, feature_cols, tecnica, processed_filename):
     if tecnica != 'regression':
         raise dash.exceptions.PreventUpdate
