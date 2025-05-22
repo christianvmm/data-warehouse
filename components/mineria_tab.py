@@ -102,6 +102,8 @@ def mineria_tab(processed_filename):
                     ], width=6)
                 ], className="mb-3"),
                 html.Div(id='cluster-variable-selectors', className="mb-3"),
+                html.Div(id='classification-variable-selectors'), 
+                html.Div(id='regression-variable-selectors'), 
                 html.Div(id='mining-output-container')
             ])
         ], className="mb-4 shadow-sm"),
@@ -109,3 +111,4 @@ def mineria_tab(processed_filename):
         
         dcc.Store(id='transformed-filepath', data=processed_filename)
     ])
+
