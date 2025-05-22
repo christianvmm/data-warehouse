@@ -17,30 +17,79 @@
 
 # components/info_tab.py
 from dash import html
+import dash_bootstrap_components as dbc
 from utils.file_to_df import file_to_df
+import math
 
 def info_tab(filepath):
     if not filepath:
-        return html.Div("No se ha subido ningún archivo.")
+        return dbc.Container([
+            dbc.Alert(
+                "No se ha subido ningún archivo.",
+                color="secondary",
+                className="mt-4"
+            )
+        ], fluid=True)
 
     try:
         df = file_to_df(filepath)
     except Exception as e:
-        return html.Div(f"Error al cargar archivo: {str(e)}")
+        return dbc.Container([
+            dbc.Alert(
+                f"Error al cargar archivo: {str(e)}",
+                color="danger",
+                className="mt-4"
+            )
+        ], fluid=True)
 
-    # Resumen de columnas
-    columnas = html.Ul([html.Li(f"{col} ({dtype})") for col, dtype in zip(df.columns, df.dtypes)])
+    
+    col_data = [f"{col} ({dtype})" for col, dtype in zip(df.columns, df.dtypes)]
+    n = len(col_data)
+    chunk = math.ceil(n / 2)
+    left_cols = col_data[:chunk]
+    right_cols = col_data[chunk:]
 
-    # Conteo de nulos
+    
     nulos = df.isnull().sum()
-    nulos_list = html.Ul([html.Li(f"{col}: {nulos[col]} valores nulos") for col in df.columns if nulos[col] > 0])
+    nul_list = [f"{col}: {nulos[col]} nulos" for col in df.columns if nulos[col] > 0]
 
-    return html.Div([
-        html.H4("Información general del archivo"),
-        html.P(f"Filas: {df.shape[0]}"),
-        html.P(f"Columnas: {df.shape[1]}"),
-        html.H5("Columnas y tipos de datos:"),
-        columnas,
-        html.H5("Valores nulos:"),
-        nulos_list if not nulos.empty else html.P("No hay valores nulos.")
-    ])
+    return dbc.Container([
+        
+        html.H4("Información general del archivo",
+                className="text-primary text-center mb-4 mt-4"),
+
+        
+        dbc.Row([
+            dbc.Col(html.P(f"Filas: {df.shape[0]}", className="h5 text-center"), width=6),
+            dbc.Col(html.P(f"Columnas: {df.shape[1]}", className="h5 text-center"), width=6)
+        ], className="mb-4"),
+
+        
+        html.H5("Columnas y tipos de datos:", className="text-info mb-3"),
+        dbc.Row([
+            dbc.Col(
+                html.Ul([html.Li(item, className="list-group-item") for item in left_cols],
+                        className="list-group"),
+                width=6
+            ),
+            dbc.Col(
+                html.Ul([html.Li(item, className="list-group-item") for item in right_cols],
+                        className="list-group"),
+                width=6
+            )
+        ], className="mb-4"),
+
+        
+        html.H5("Valores nulos:", className="text-info mb-3"),
+        dbc.Row([
+            dbc.Col(
+                html.Ul(
+                    [html.Li(item, className="list-group-item") for item in nul_list]
+                    if nul_list else [html.Li("No hay valores nulos.", className="list-group-item text-muted")],
+                    className="list-group"
+                ),
+                width=12
+            )
+        ]),
+
+    ], fluid=True, style={'maxWidth': '900px'})
