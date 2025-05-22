@@ -18,7 +18,8 @@ TMP_DIR = os.path.join(tempfile.gettempdir(), 'dash_uploads')
 )
 def mostrar_dropdowns_clasificacion(tecnica, processed_filename):
     if tecnica != 'classification' or not processed_filename:
-        return []
+        return html.Div("No se encontraron columnas adecuadas para clasificación.")
+
 
     fullpath = os.path.join(TMP_DIR, processed_filename)
     if not os.path.exists(fullpath):
@@ -46,13 +47,14 @@ def mostrar_dropdowns_clasificacion(tecnica, processed_filename):
     ])
 
 
-# @callback(
-#     Output('mining-output-container', 'children'),
-#     Input('classification-target-dropdown', 'value'),
-#     Input('classification-features-dropdown', 'value'),
-#     State('mining-technique-dropdown', 'value'),
-#     State('transformed-filepath', 'data'),
-# )
+@callback(
+    Output('mining-output-container', 'children', allow_duplicate=True),
+    Input('classification-target-dropdown', 'value'),
+    Input('classification-features-dropdown', 'value'),
+    State('mining-technique-dropdown', 'value'),
+    State('transformed-filepath', 'data'),
+    prevent_initial_call = True
+)
 def aplicar_tecnica_clasificacion(target_col, feature_cols, tecnica, processed_filename):
     if tecnica != 'classification':
         raise dash.exceptions.PreventUpdate

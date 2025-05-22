@@ -38,7 +38,9 @@ os.makedirs(TMP_DIR, exist_ok=True) # Asegura que exista la carpeta
 # external_stylesheets = ['https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css']
 
 # límite de subida (para archivos > 16MB)
-app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY], suppress_callback_exceptions=True)
+app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY], suppress_callback_exceptions=True,
+  prevent_initial_callbacks=True
+)
 app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 app.layout = dbc.Container([
 
