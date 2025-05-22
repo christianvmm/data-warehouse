@@ -17,6 +17,10 @@ from components.mineria_tab import mineria_tab
 from components.resultados_tab import resultados_tab
 import tempfile
 
+from components.clasificacion import mostrar_dropdowns_clasificacion, aplicar_tecnica_clasificacion
+from components.regresion import mostrar_dropdowns_regresion, aplicar_tecnica_regresion
+from components.cluster import mostrar_dropdowns_cluster, aplicar_kmeans
+
 import dash_bootstrap_components as dbc
 
 from sklearn.cluster import KMeans
@@ -90,7 +94,6 @@ app.layout = dbc.Container([
     ])
 
 ], fluid=True)
-
 # Callback para guardar el archivo subido
 @callback(
     Output('stored-filename', 'data'),
@@ -286,129 +289,6 @@ def update_eda_graficos(selected_col, processed_filename):
         dcc.Graph(figure=fig_box)
     ])
 
-
-
-# Callback para tecnicas de datamining
-# @callback(
-#     Output('mining-output-container', 'children'),
-#     Input('mining-technique-dropdown', 'value'),
-#     Input('cluster-x-dropdown', 'value'),
-#     Input('cluster-y-dropdown', 'value'),
-#     State('transformed-filepath', 'data'),
-#     prevent_initial_call=True
-# )
-# def aplicar_tecnica(tecnica, x_col, y_col, processed_filename):
-#     if not processed_filename:
-#         return html.Div("No hay archivo procesado disponible.")
-
-#     fullpath = os.path.join(TMP_DIR, processed_filename)
-#     if not os.path.exists(fullpath):
-#         return html.Div("Archivo no encontrado.")
-
-#     df = pd.read_csv(fullpath)
-
-#     if tecnica == 'kmeans':
-#         if not x_col or not y_col:
-#             return html.Div("Selecciona dos columnas numéricas.")
-
-#         if x_col not in df.columns or y_col not in df.columns:
-#             return html.Div("Columnas inválidas.")
-
-#         X = df[[x_col, y_col]].dropna()
-#         from sklearn.cluster import KMeans
-#         import plotly.express as px
-
-#         kmeans = KMeans(n_clusters=3, random_state=0).fit(X)
-#         X['cluster'] = kmeans.labels_
-
-#         fig = px.scatter(
-#             X, x=x_col, y=y_col, color=X['cluster'].astype(str),
-#             title='Clustering con K-Means',
-#             color_discrete_sequence=px.colors.qualitative.Set1
-#         )
-
-#         return dcc.Graph(figure=fig)
-
-#     elif tecnica == 'decision_tree':
-#         return html.Div("Árbol de decisión aún no implementado.")
-
-#     elif tecnica == 'linear_regression':
-#         return html.Div("Regresión lineal aún no implementada.")
-
-#     return html.Div("Técnica no reconocida.")
-
-@callback(
-    Output('cluster-variable-selectors', 'children'),
-    Input('mining-technique-dropdown', 'value'),
-    State('transformed-filepath', 'data'),
-    prevent_initial_call=True
-)
-def mostrar_dropdowns_cluster(tecnica, processed_filename):
-    if tecnica != 'kmeans' or not processed_filename:
-        return []
-
-    fullpath = os.path.join(TMP_DIR, processed_filename)
-    if not os.path.exists(fullpath):
-        return html.Div("Archivo no encontrado.")
-
-    df = pd.read_csv(fullpath)
-    df = df.loc[:, ~df.columns.duplicated()]  # Eliminamos columnas duplicadas
-
-    numeric_cols = df.select_dtypes(include='number').columns.tolist()
-
-    if len(numeric_cols) < 2:
-        return html.Div("No hay suficientes columnas numéricas para clustering.")
-
-    options = [{'label': col, 'value': col} for col in numeric_cols]
-
-    return html.Div([
-        html.Label("Selecciona columna X:"),
-        dcc.Dropdown(id='cluster-x-dropdown', options=options, value=numeric_cols[0]),
-        html.Label("Selecciona columna Y:"),
-        dcc.Dropdown(id='cluster-y-dropdown', options=options, value=numeric_cols[1])
-    ])
-
-
-@callback(
-    Output('mining-output-container', 'children'),
-    Input('cluster-x-dropdown', 'value'),
-    Input('cluster-y-dropdown', 'value'),
-    State('mining-technique-dropdown', 'value'),
-    State('transformed-filepath', 'data'),
-    prevent_initial_call=True
-)
-def aplicar_tecnica_cluster(x_col, y_col, tecnica, processed_filename):
-    if tecnica != 'kmeans':
-        return html.Div("Selecciona una técnica válida.")
-
-    if not x_col or not y_col or not processed_filename:
-        return html.Div("Faltan columnas o archivo.")
-
-    fullpath = os.path.join(TMP_DIR, processed_filename)
-    if not os.path.exists(fullpath):
-        return html.Div("Archivo no encontrado.")
-
-    df = pd.read_csv(fullpath)
-    df = df.loc[:, ~df.columns.duplicated()]  # Eliminar columnas duplicadas
-
-    if x_col not in df.columns or y_col not in df.columns:
-        return html.Div("Columnas inválidas.")
-
-    X = df[[x_col, y_col]].dropna()
-
-    from sklearn.cluster import KMeans
-    import plotly.express as px
-
-    kmeans = KMeans(n_clusters=3, random_state=0).fit(X)
-    X['cluster'] = kmeans.labels_
-
-    fig = px.scatter(
-        X, x=x_col, y=y_col, color=X['cluster'].astype(str),
-        title='Clustering con K-Means',
-        color_discrete_sequence=px.colors.qualitative.Set1
-    )
-
-    return dcc.Graph(figure=fig)
 
 # Callback para renderizar el contenido de la pestaña seleccionada
 @callback(
