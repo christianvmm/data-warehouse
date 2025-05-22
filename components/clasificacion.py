@@ -18,8 +18,7 @@ TMP_DIR = os.path.join(tempfile.gettempdir(), 'dash_uploads')
 )
 def mostrar_dropdowns_clasificacion(tecnica, processed_filename):
     if tecnica != 'classification' or not processed_filename:
-        return html.Div("No se encontraron columnas adecuadas para clasificación.")
-
+        return []
 
     fullpath = os.path.join(TMP_DIR, processed_filename)
     if not os.path.exists(fullpath):
