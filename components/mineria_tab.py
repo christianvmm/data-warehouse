@@ -73,14 +73,15 @@ def mineria_tab(processed_filename):
         dcc.Dropdown(
             id='mining-technique-dropdown',
             options=[
-                {'label': 'Clustering - K-Means', 'value': 'kmeans'},
-                {'label': 'Clasificación - Árbol de Decisión', 'value': 'decision_tree'},
-                {'label': 'Regresión Lineal', 'value': 'regression'}
+                {'label': 'Clustering (KMeans)', 'value': 'kmeans'},
+                {'label': 'Clasificación (Árbol de decisión)', 'value': 'classification'},
+                {'label': 'Regresión', 'value': 'regression'},
             ],
             placeholder="Selecciona una técnica de minería",
         ),
 
         html.Div(id='cluster-variable-selectors'),
-
+        html.Div(id='classification-variable-selectors'), 
+        html.Div(id='regression-variable-selectors'), 
         html.Div(id='mining-output-container'),
     ])
