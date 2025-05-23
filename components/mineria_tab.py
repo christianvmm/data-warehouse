@@ -4,6 +4,7 @@ import pandas as pd
 from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 from components.k_means_clustering_component import k_means_clustering_component
+from components.otro_metodo_component import otro_metodo_component
 
 TMP_DIR = os.path.join(tempfile.gettempdir(), 'dash_uploads')
 
@@ -84,7 +85,8 @@ def mineria_tab(processed_filename):
 
         
         k_means_clustering_component(fullpath),
-        
+        otro_metodo_component(fullpath), 
+
         dcc.Store(id='transformed-filepath', data=processed_filename)
     ])
 
