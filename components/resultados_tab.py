@@ -3,6 +3,7 @@ from dash import html
 
 def resultados_tab(filepath):
     return dbc.Container([
+        # Conclusiones del modelo de clustering (K-Means)
         dbc.Card([
             dbc.CardHeader(html.H4("📌 Conclusión y Toma de Decisión", className="card-title")),
             dbc.CardBody([
@@ -38,6 +39,41 @@ def resultados_tab(filepath):
                 html.P(
                     "👉 En resumen: el modelo no solo analiza datos históricos, sino que se convierte en una herramienta predictiva capaz de integrarse con el sistema de reservas para activar comunicaciones automatizadas y personalizadas. Esto representa una clara ventaja competitiva para el hotel.",
                     style={"fontSize": "1.1rem", "fontWeight": "bold", "color": "#0d6efd"}
+                )
+            ])
+        ], className="shadow-sm p-4 mt-3"),
+
+        # Conclusiones del modelo de regresión
+        dbc.Card([
+            dbc.CardHeader(html.H4("📈 Conclusiones del modelo de Regresión", className="card-title")),
+            dbc.CardBody([
+                html.P(
+                    "Además del análisis de segmentación, se implementó un modelo de regresión para predecir el precio promedio por habitación que pagará cada cliente en función de las características de su reserva.",
+                    style={"fontSize": "1.1rem"}
+                ),
+                html.H5("🔍 Principales hallazgos del modelo", className="mt-4"),
+                html.Ul([
+                    html.Li("El modelo utiliza algoritmos de regresión para predecir el precio con una buena precisión."),
+                    html.Li("Las variables con mayor impacto en la predicción incluyen el tipo de habitación, el mes de llegada, y el segmento de mercado."),
+                    html.Li("El modelo puede integrarse fácilmente con el sistema de reservas para calcular automáticamente un precio sugerido personalizado."),
+                ], style={"fontSize": "1rem"}),
+
+                html.H5("💼 Aplicación directa en el negocio", className="mt-4"),
+                html.P(
+                    "Este modelo permite establecer precios dinámicos por reserva, basados en datos reales y ajustados al perfil del cliente. Esto aporta múltiples beneficios estratégicos:",
+                    style={"fontSize": "1.05rem"}
+                ),
+                html.Ul([
+                    html.Li("Maximiza los ingresos ajustando el precio según la demanda y características del cliente."),
+                    html.Li("Facilita la implementación de descuentos estratégicos o promociones automáticas."),
+                    html.Li("Permite realizar simulaciones para evaluar el impacto de campañas o políticas de precios."),
+                ], style={"fontSize": "1rem"}),
+
+                html.Hr(),
+
+                html.P(
+                    "✅ En resumen: este modelo permite transformar el sistema de precios del hotel en un proceso inteligente y automatizado, mejorando la rentabilidad y ofreciendo una experiencia más personalizada al cliente.",
+                    style={"fontSize": "1.1rem", "fontWeight": "bold", "color": "#198754"}
                 )
             ])
         ], className="shadow-sm p-4 mt-3")
