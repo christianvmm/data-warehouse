@@ -43,10 +43,8 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY], suppress_callback
 )
 app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 app.layout = dbc.Container([
-
     dcc.Store(id='transformed-filepath'),
     dcc.Store(id='stored-filename'),
-
     dbc.Row([
         dbc.Col(
             html.H3(
