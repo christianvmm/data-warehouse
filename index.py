@@ -43,8 +43,10 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY], suppress_callback
 )
 app.server.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 app.layout = dbc.Container([
-    dcc.Store(id='transformed-filepath'),
+
+    dcc.Store(id='transformed-filepath', data=None),
     dcc.Store(id='stored-filename'),
+
     dbc.Row([
         dbc.Col(
             html.H3(
@@ -129,11 +131,15 @@ def save_uploaded_file(contents, filename):
     # State('etl-to-numeric-columns', 'value'),
     State('stored-filename', 'data'),
     
-    prevent_initial_call=True
+    prevent_initial_call=True, 
+    # allow_duplicate=True
 )
 def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
               normalize_cols, filter_max, filepath):
     # print("Cols to numeric:", cols_to_numeric)
+    transformaciones_realizadas = False
+    accion = ""
+    
     if filepath is None:
         return no_update, "No hay archivo cargado."
 
@@ -142,11 +148,15 @@ def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
 
     # 1. Eliminar columnas
     if cols_to_drop:
+        transformaciones_realizadas = True
+        accion = "Eliminar columnas"
         df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
         feedback_msgs.append(f"Eliminadas {len(cols_to_drop)} columnas.")
 
     # 2. Convertir fechas
     if cols_to_date:
+        transformaciones_realizadas = True
+        accion = "Convertir columnas a fecha"
         for col in cols_to_date:
             try:
                 # Formatos de YYYY/MM/DD o YYYYMMDD, cambian a YYYY-MM-DD
@@ -170,6 +180,8 @@ def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
 
     # 3. Reemplazar nulos 
     if 'nulls' in etl_options:
+        transformaciones_realizadas = True
+        accion = "Reemplazar nulos"
         for col in df.columns:
             if df[col].isnull().any():
                 if pd.api.types.is_numeric_dtype(df[col]):
@@ -181,6 +193,8 @@ def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
 
     # 4. Eliminar duplicados
     if 'duplicates' in etl_options:
+        transformaciones_realizadas = True
+        accion = "Eliminar duplicados"
         before = len(df)
         df.drop_duplicates(inplace=True)
         after = len(df)
@@ -190,6 +204,8 @@ def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
 
      # 5. Normalización
     if normalize_cols:
+        transformaciones_realizadas = True
+        accion = "Normalizar columnas"
         for col in normalize_cols:
             if pd.api.types.is_numeric_dtype(df[col]):
                 min_val = df[col].min()
@@ -201,6 +217,7 @@ def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
                     feedback_msgs.append(f"No se normalizó '{col}' (valor constante).")
 
     # 6 . Filtrado 
+        # transformaciones_realizadas = True
     # if filter_col and (filter_min is not None or filter_max is not None):
     #     original_len = len(df)
     #     if filter_min is not None:
@@ -241,9 +258,15 @@ def aplicar_etl(n_clicks, cols_to_drop, cols_to_date, etl_options,
     #             print(f"Error al convertir columna {col}: {e}")
 
     # Guardar el dataframe transformado en un archivo temporal
-    filename = f"processed_{uuid.uuid4().hex}.csv"
-    fullpath = os.path.join(TMP_DIR, filename)
-    df.to_csv(fullpath, index=False)
+    if transformaciones_realizadas:
+        print("Transformaciones aplicadas en: ", accion)
+        filename = f"processed_{uuid.uuid4().hex}.csv"
+        fullpath = os.path.join(TMP_DIR, filename)
+        df.to_csv(fullpath, index=False)
+    else:
+        print("No se aplicaron transformaciones.")
+        filename = None
+        feedback_msgs.append("No se aplicaron transformaciones.")
 
     # Mostrar tabla
     table = dash_table.DataTable(
@@ -328,9 +351,12 @@ def update_eda_graficos(selected_col, processed_filename):
     Output('tab-content', 'children'),
     Input('tabs', 'value'),
     Input('stored-filename', 'data'),
-    State('transformed-filepath', 'data')
+    State('transformed-filepath', 'data'),
 )
 def render_tab(tab, filepath, processed_filename):
+    print("🟡 DEBUG - Pestaña actual:", tab)
+    print("📂 DEBUG - Archivo original (filepath):", filepath)
+    print("⚙️ DEBUG - Archivo procesado (transformed_filepath):", processed_filename)
     # print("Callback de render_tab activado")
     if tab == 'tab-upload':
         return upload_tab(filepath)
@@ -349,7 +375,7 @@ def render_tab(tab, filepath, processed_filename):
     elif tab == 'tab-resultados':
         return resultados_tab(filepath)
     
-    
+
         
 if __name__ == '__main__':
     app.run(debug=True)

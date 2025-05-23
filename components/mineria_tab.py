@@ -89,6 +89,6 @@ def mineria_tab(processed_filename):
         k_means_clustering_component(fullpath),
         otro_metodo_component(fullpath), 
 
-        dcc.Store(id='transformed-filepath', data=processed_filename)
+        # dcc.Store(id='transformed-filepath', data=processed_filename)
     ])
 

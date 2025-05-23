@@ -163,10 +163,10 @@ def k_means_clustering_component(fullpath):
             html.Div([
                 html.H2("Segmentación de clientes con Clustering (K-Means)"),
                 html.Blockquote([
-                    html.H4("🎯 Objetivo de negocio:"),
+                    html.H4("Objetivo de negocio:"),
                     html.P("Identificar los diferentes tipos de clientes que llegan al hotel, determinar si hay grupos que reservan con más antelación, y distinguir entre familias y viajeros de negocios.")
                 ]),
-                html.H4("💡 Idea"),
+                html.H4("Idea"),
                 html.P(
                     "Usar K-Means para agrupar clientes en perfiles en base a sus características:"
                 ),
@@ -178,7 +178,7 @@ def k_means_clustering_component(fullpath):
                     html.Li("¿Piden estacionamiento o no?"),
                     html.Li("¿Vienen por qué canal?")
                 ]),
-                html.H4("✅ ¿Por qué es útil para el negocio?"),
+                html.H4("¿Por qué es útil para el negocio?"),
                 html.Ul([
                     html.Li("Permite crear campañas personalizadas por segmento."),
                     html.Li("El hotel puede optimizar precios, servicios y paquetes para cada grupo."),
@@ -248,6 +248,6 @@ def classify_new_reservation(n_clicks, adults, children, weekend, week, parking,
         cluster = kmeans.predict(new_scaled)[0]
         descripcion = descripciones.get(cluster, "Segmento no identificado.")
 
-        return dbc.Alert(f"📊 La reserva fue clasificada en el *Cluster {cluster}*. {descripcion}", color="info")
+        return dbc.Alert(f"La reserva fue clasificada en el *Cluster {cluster}*. {descripcion}", color="info")
     except Exception as e:
-        return dbc.Alert(f"❌ Error al predecir: {str(e)}", color="danger")
+        return dbc.Alert(f"Error al predecir: {str(e)}", color="danger")

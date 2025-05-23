@@ -135,7 +135,7 @@ def etl_tab(filepath):
             ),
 
             
-            dcc.Store(id='transformed-filepath', storage_type='session'),
+            # dcc.Store(id='transformed-filepath', storage_type='session'),
             dcc.Download(id="download-data")
         ]
     )

@@ -77,18 +77,18 @@ def otro_metodo_component(fullpath):
             html.Div([
                 html.H2("Regresión para determinar el precio a cobrar"),
                 html.Blockquote([
-                    html.H4("🎯 Objetivo de negocio:"),
+                    html.H4("Objetivo de negocio:"),
                     html.P(
                         "Predecir el precio promedio por habitación que pagará cada cliente según las características de su reserva, "
                         "permitiendo así optimizar la estrategia de precios y maximizar los ingresos."
                     )
                 ]),
-                html.H4("💡 Idea"),
+                html.H4("Idea"),
                 html.P(
                     "Utilizar un modelo de regresión que, a partir de datos históricos de reservas, "
                     "aprenda patrones relacionados con el precio que los clientes tienden a pagar bajo diferentes condiciones."
                 ),
-                html.H4("✅ ¿Por qué es útil para el negocio?"),
+                html.H4("¿Por qué es útil para el negocio?"),
                 html.Ul([
                     html.Li("Permite anticipar ingresos por reserva antes de la confirmación, ayudando a planificar recursos y promociones."),
                     html.Li("Facilita la implementación de estrategias de precios dinámicos basados en el perfil y comportamiento del cliente."),
@@ -98,7 +98,7 @@ def otro_metodo_component(fullpath):
                 html.Hr(),
 
                 # Métricas
-                html.H4("📊 Resultados del modelo"),
+                html.H4("Resultados del modelo"),
                 html.P(f"Mean Squared Error (MSE): {mse:.2f}"),
                 html.P(f"R² Score: {r2:.2f}"),
 
@@ -111,7 +111,7 @@ def otro_metodo_component(fullpath):
                 html.Hr(),
 
                 # Formulario para predicción nueva reserva
-                html.H4("📝 Predecir precio para nueva reserva"),
+                html.H4("Predecir precio para nueva reserva"),
 
                 # Inputs para las features (solo un subset para ejemplo, ajusta según tus columnas)
                 dbc.Row([
