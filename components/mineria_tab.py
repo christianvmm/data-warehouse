@@ -5,6 +5,7 @@ from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 from components.k_means_clustering_component import k_means_clustering_component
 from components.otro_metodo_component import otro_metodo_component
+from components.reservations_per_date import reservations_per_date
 
 TMP_DIR = os.path.join(tempfile.gettempdir(), 'dash_uploads')
 
@@ -83,7 +84,8 @@ def mineria_tab(processed_filename):
             ])
         ], className="mb-4 shadow-sm"),
 
-        
+
+        reservations_per_date(fullpath),
         k_means_clustering_component(fullpath),
         otro_metodo_component(fullpath), 
 
