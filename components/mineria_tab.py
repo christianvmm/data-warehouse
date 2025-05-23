@@ -187,18 +187,18 @@ def kmeans_clustering_component(fullpath):
 
     # Layout final con todos los componentes
     return dbc.Card([
-        dbc.CardHeader(html.H5("Minería de Datos - Clustering KMeans")),
+        dbc.CardHeader(html.H5("Minería de Datos")),
         dbc.CardBody([
             # Texto introductorio
             html.Div([
-                html.H2("🎯 Caso de uso: Segmentación de clientes con Clustering (K-Means)"),
+                html.H2("Segmentación de clientes con Clustering (K-Means)"),
                 html.Blockquote([
-                    html.H4("❓ Pregunta de negocio:"),
-                    html.P("¿Qué tipos de clientes diferentes llegan al hotel? ¿Hay grupos que reserven con más antelación? ¿Familias? ¿Viajeros de negocios?")
+                    html.H4("🎯 Objetivo de negocio:"),
+                    html.P("Identificar los diferentes tipos de clientes que llegan al hotel, determinar si hay grupos que reservan con más antelación, y distinguir entre familias y viajeros de negocios.")
                 ]),
                 html.H4("💡 Idea"),
                 html.P(
-                    "Usamos K-Means Clustering para agrupar clientes en perfiles en base a sus características:"
+                    "Usar K-Means para agrupar clientes en perfiles en base a sus características:"
                 ),
                 html.Ul([
                     html.Li("¿Cuántos adultos y niños traen?"),
@@ -212,7 +212,6 @@ def kmeans_clustering_component(fullpath):
                 html.Ul([
                     html.Li("Permite crear campañas personalizadas por segmento."),
                     html.Li("El hotel puede optimizar precios, servicios y paquetes para cada grupo."),
-                    html.Li("Se pueden identificar clientes VIP, viajeros frecuentes, familias, etc.")
                 ]),
                 html.Hr()
             ], style={'marginBottom': '30px'}),
