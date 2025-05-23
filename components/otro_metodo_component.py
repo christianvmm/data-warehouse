@@ -277,6 +277,8 @@ def predict_price(n_clicks, adults, children, weekend_nights, week_nights, meal_
         'no_of_special_requests': special_requests,
     }
 
+    print("ejecuta aqui")
+    
     # Crear DataFrame
     df_new = pd.DataFrame([new_reservation])
 

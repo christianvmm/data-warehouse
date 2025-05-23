@@ -115,38 +115,38 @@ def k_means_clustering_component(fullpath):
         dbc.Row([
             dbc.Col([
                 html.Label("Número de adultos"),
-                dbc.Input(id='input_adults', type='number')
+                dbc.Input(id='input_adults', type='number', value=2)
             ], md=3),
             dbc.Col([
                 html.Label("Número de niños"),
-                dbc.Input(id='input_children', type='number')
+                dbc.Input(id='input_children', type='number', value=4)
             ], md=3),
             dbc.Col([
                 html.Label("Noches fin de semana"),
-                dbc.Input(id='input_weekend', type='number')
+                dbc.Input(id='input_weekend', type='number', value=2)
             ], md=3),
             dbc.Col([
                 html.Label("Noches entre semana"),
-                dbc.Input(id='input_week', type='number')
+                dbc.Input(id='input_week', type='number', value=2)
             ], md=3),
         ], className='mb-2'),
 
         dbc.Row([
             dbc.Col([
                 html.Label("Lead time (días)"),
-                dbc.Input(id='input_lead_time', type='number')
+                dbc.Input(id='input_lead_time', type='number', value=10)
             ], md=3),
             dbc.Col([
                 html.Label("¿Estacionamiento? (0 o 1)"),
-                dbc.Input(id='input_parking', type='number')
+                dbc.Input(id='input_parking', type='number', value=0)
             ], md=3),
             dbc.Col([
                 html.Label("Tipo habitación (codificado)"),
-                dbc.Input(id='input_room', type='number')
+                dbc.Input(id='input_room', type='number', value=1)
             ], md=3),
             dbc.Col([
                 html.Label("Segmento mercado (codificado)"),
-                dbc.Input(id='input_market', type='number')
+                dbc.Input(id='input_market', type='number', value=1)
             ], md=3),
         ], className='mb-2'),
 
