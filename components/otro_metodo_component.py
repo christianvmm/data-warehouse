@@ -216,7 +216,7 @@ def otro_metodo_component(fullpath):
                     ], width=3),
                 ], className='mb-3'),
 
-                dbc.Button("Predecir Precio", id='btn_predict', color='primary'),
+                dbc.Button("Predecir Precio", id='btn_predict_regression', color='primary'),
 
                 html.Hr(),
                 html.Div(id='prediction_output', style={'marginTop': '20px', 'fontWeight': 'bold', 'fontSize': '1.2em'}),
@@ -233,7 +233,7 @@ def otro_metodo_component(fullpath):
 # CALLBACK dentro de la función, usando closure para acceso a modelo y label_encoders
 @callback(
     Output('prediction_output', 'children'),
-    Input('btn_predict', 'n_clicks'),
+    Input('btn_predict_regression', 'n_clicks'),
     State('input_no_of_adults', 'value'),
     State('input_no_of_children', 'value'),
     State('input_no_of_weekend_nights', 'value'),
@@ -276,8 +276,6 @@ def predict_price(n_clicks, adults, children, weekend_nights, week_nights, meal_
         'no_of_previous_bookings_not_canceled': prev_not_cancel,
         'no_of_special_requests': special_requests,
     }
-
-    print(new_reservation)
 
     # Crear DataFrame
     df_new = pd.DataFrame([new_reservation])

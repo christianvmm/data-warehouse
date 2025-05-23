@@ -43,7 +43,6 @@ def etl_tab(filepath):
                                 id='etl-options',
                                 options=[
                                     {'label': 'Reemplazar valores nulos', 'value': 'nulls'},
-                                    {'label': 'Eliminar duplicados', 'value': 'duplicates'},
                                 ],
                                 value=[],
                                 switch=True
