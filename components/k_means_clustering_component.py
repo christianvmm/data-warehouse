@@ -111,21 +111,49 @@ def k_means_clustering_component(fullpath):
     # --- FORMULARIO SIMPLIFICADO PARA NUEVA RESERVA ---
     form_inputs = html.Div([
         html.H6("Clasificar nueva reserva"),
+        
         dbc.Row([
-            dbc.Col(dbc.Input(id='input_adults', type='number', placeholder='Número de adultos'), md=3),
-            dbc.Col(dbc.Input(id='input_children', type='number', placeholder='Número de niños'), md=3),
-            dbc.Col(dbc.Input(id='input_weekend', type='number', placeholder='Noches fin de semana'), md=3),
-            dbc.Col(dbc.Input(id='input_week', type='number', placeholder='Noches entre semana'), md=3),
+            dbc.Col([
+                html.Label("Número de adultos"),
+                dbc.Input(id='input_adults', type='number')
+            ], md=3),
+            dbc.Col([
+                html.Label("Número de niños"),
+                dbc.Input(id='input_children', type='number')
+            ], md=3),
+            dbc.Col([
+                html.Label("Noches fin de semana"),
+                dbc.Input(id='input_weekend', type='number')
+            ], md=3),
+            dbc.Col([
+                html.Label("Noches entre semana"),
+                dbc.Input(id='input_week', type='number')
+            ], md=3),
         ], className='mb-2'),
+
         dbc.Row([
-            dbc.Col(dbc.Input(id='input_lead_time', type='number', placeholder='Lead time (días)'), md=3),
-            dbc.Col(dbc.Input(id='input_parking', type='number', placeholder='¿Estacionamiento? (0 o 1)'), md=3),
-            dbc.Col(dbc.Input(id='input_room', type='number', placeholder='Tipo habitación (codificado)'), md=3),
-            dbc.Col(dbc.Input(id='input_market', type='number', placeholder='Segmento mercado (codificado)'), md=3),
+            dbc.Col([
+                html.Label("Lead time (días)"),
+                dbc.Input(id='input_lead_time', type='number')
+            ], md=3),
+            dbc.Col([
+                html.Label("¿Estacionamiento? (0 o 1)"),
+                dbc.Input(id='input_parking', type='number')
+            ], md=3),
+            dbc.Col([
+                html.Label("Tipo habitación (codificado)"),
+                dbc.Input(id='input_room', type='number')
+            ], md=3),
+            dbc.Col([
+                html.Label("Segmento mercado (codificado)"),
+                dbc.Input(id='input_market', type='number')
+            ], md=3),
         ], className='mb-2'),
+
         dbc.Button("Clasificar reserva", id='btn_predict', color='primary', className='mt-2'),
         html.Div(id='prediction_result', className='mt-3')
     ])
+
 
     # Layout final con todos los componentes
     return dbc.Card([
