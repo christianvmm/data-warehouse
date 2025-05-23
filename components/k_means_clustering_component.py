@@ -9,7 +9,19 @@ from sklearn.decomposition import PCA
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
+# Variables globales
+scaler = None
+kmeans = None
+descripciones = {
+    0: "🔹 Cluster 0: Parejas o adultos solos, estadías cortas, pocas solicitudes.",
+    1: "🔹 Cluster 1: Familias con niños, noches en fin de semana, prefieren habitaciones grandes.",
+    2: "🔹 Cluster 2: Estancias largas, reservan con anticipación, posiblemente viajeros frecuentes.",
+    3: "🔹 Cluster 3: Estadías más cortas, reservan en el último momento, buscan comodidad rápida."
+}
+
 def k_means_clustering_component(fullpath):
+    global scaler, kmeans  # Agrega esto al principio de la función
+    
     # Carga datos
     df = pd.read_csv(fullpath)
 
@@ -96,6 +108,25 @@ def k_means_clustering_component(fullpath):
     }
     desc_items = [html.Li(desc) for desc in descripciones.values()]
 
+    # --- FORMULARIO SIMPLIFICADO PARA NUEVA RESERVA ---
+    form_inputs = html.Div([
+        html.H6("Clasificar nueva reserva"),
+        dbc.Row([
+            dbc.Col(dbc.Input(id='input_adults', type='number', placeholder='Número de adultos'), md=3),
+            dbc.Col(dbc.Input(id='input_children', type='number', placeholder='Número de niños'), md=3),
+            dbc.Col(dbc.Input(id='input_weekend', type='number', placeholder='Noches fin de semana'), md=3),
+            dbc.Col(dbc.Input(id='input_week', type='number', placeholder='Noches entre semana'), md=3),
+        ], className='mb-2'),
+        dbc.Row([
+            dbc.Col(dbc.Input(id='input_lead_time', type='number', placeholder='Lead time (días)'), md=3),
+            dbc.Col(dbc.Input(id='input_parking', type='number', placeholder='¿Estacionamiento? (0 o 1)'), md=3),
+            dbc.Col(dbc.Input(id='input_room', type='number', placeholder='Tipo habitación (codificado)'), md=3),
+            dbc.Col(dbc.Input(id='input_market', type='number', placeholder='Segmento mercado (codificado)'), md=3),
+        ], className='mb-2'),
+        dbc.Button("Clasificar reserva", id='btn_predict', color='primary', className='mt-2'),
+        html.Div(id='prediction_result', className='mt-3')
+    ])
+
     # Layout final con todos los componentes
     return dbc.Card([
         dbc.CardHeader(html.H5("Minería de Datos")),
@@ -139,5 +170,56 @@ def k_means_clustering_component(fullpath):
 
             html.H6("Descripción general de los clusters"),
             html.Ul(desc_items),
+
+            form_inputs
         ])
     ], className="mb-4 shadow-sm")
+
+
+
+
+from dash import Input, Output, State, callback
+
+@callback(
+    Output('prediction_result', 'children'),
+    Input('btn_predict', 'n_clicks'),
+    State('input_adults', 'value'),
+    State('input_children', 'value'),
+    State('input_weekend', 'value'),
+    State('input_week', 'value'),
+    State('input_parking', 'value'),
+    State('input_room', 'value'),
+    State('input_lead_time', 'value'),
+    State('input_market', 'value'),
+)
+def classify_new_reservation(n_clicks, adults, children, weekend, week, parking, room, lead_time, market):
+    if not n_clicks:
+        return ""
+    try:
+        # Validar entrada
+        values = [adults, children, weekend, week, parking, room, lead_time, market]
+        if any(v is None for v in values):
+            return dbc.Alert("⚠️ Por favor completa todos los campos antes de predecir.", color="warning")
+
+        # Crear DataFrame con una fila
+        new_data = pd.DataFrame([values], columns=[
+            'no_of_adults',
+            'no_of_children',
+            'no_of_weekend_nights',
+            'no_of_week_nights',
+            'required_car_parking_space',
+            'room_type_reserved',
+            'lead_time',
+            'market_segment_type'
+        ])
+
+        # Escalar los datos
+        new_scaled = scaler.transform(new_data)
+
+        # Predecir con el modelo
+        cluster = kmeans.predict(new_scaled)[0]
+        descripcion = descripciones.get(cluster, "Segmento no identificado.")
+
+        return dbc.Alert(f"📊 La reserva fue clasificada en el *Cluster {cluster}*. {descripcion}", color="info")
+    except Exception as e:
+        return dbc.Alert(f"❌ Error al predecir: {str(e)}", color="danger")
